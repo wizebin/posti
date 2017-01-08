@@ -1,169 +1,361 @@
-// This is neat, no more worrying about what the this pointer of a component is, just put var that = thatWrapper(this); at the top of the constructor!
-var thatWrapper = function(instance) {
-  var that = this;
-  if (this!=instance)
-    this.that = instance;
-  var prototype=Object.getPrototypeOf(instance);
-  var keys = getObjectKeys(instance).concat(getObjectKeys(prototype));
-  keys.forEach(function(key) {
-    if (typeof(instance[key]) === "function") that[key] = instance[key].bind(instance);
-  },this);
+function getEvaluatedString(str) {
+  var escaped = `\`${str.replace('`','\\`')}\``;
+  try {
+    var ret = eval(escaped);
+    return ret;
+  } catch (err) {
+    return str;
+  }
 }
 
-var me = function(instance) {
-  if (!instance.transformedInstanceThis) {
-    thatWrapper.call(instance, instance);
-    instance.transformedInstanceThis=true;
-  }
-  return instance;
+var Timeline = function(parent, props) {
+  var that = me(this);
+  this.view = spawn('div', parent, objectAssign({ className: 'timelineview' }, props));
+
+  this.cards = [];
+
+  this.cardView = spawn('div', this.view, { className: 'cardwrapper' });
+
+  this.addButton = spawn('button', this.view, { className: 'timelineadd', onclick: function() {
+    that.addCard();
+  } }, 'Add Step');
+
+  this.actButton = spawn('button', this.view, { className: 'timelineact', onclick: function() {
+    that.cards.reduce(function(accumulator, card) {
+      return accumulator.then(card.act);
+    }, Promise.resolve(true));
+  } }, 'Perform');
+
+  this.saveButton = spawn('button', this.view, { className: 'timelinesave', onclick: function() {
+    that.state = that.cards.map(function(card){
+      return card.saveState();
+    });
+  } }, 'Save Configuration');
+
+  this.addCard('CONFIG');
 }
 
 
 var Card = function(parent, props) {
-  this.view = spawn('div', parent, objectAssign({}, props));
+  var that = me(this);
+  this.props = props;
+  this.view = spawn('div', parent, objectAssign({ className: 'cardview' }, props));
+
+  this.header = spawn('div', this.view, { className: 'cardheader' }, [
+    this.options = spawn('select', null, { className: 'cardselect', onchange: function() {
+      that.showContent(this.value);
+    }}, [
+      spawn('option', null, null, 'REQUEST'),
+      spawn('option', null, null, 'ACT'),
+      spawn('option', null, null, 'CONFIG'),
+      spawn('option', null, null, 'DISPLAY'),
+    ]),
+    this.closer = spawn('button', null, { className: 'cardclose', onclick: function() {
+      that.props.onClose && that.props.onClose(that);
+    } }, 'Delete Step'),
+  ]);
+  this.content = spawn('div', this.view, { className: 'cardcontent', style: { padding: '10px' } });
+  if (this.props.initialCard) this.options.value = this.props.initialCard;
+  this.options.onchange();
+}
+
+var ConfigCard = function(parent, props) {
+  var that = me(this);
+  this.props = props || {};
+  this.view = spawn('div', parent, { className: 'configview' });
+  this.body = spawn('div', this.view, { className: 'configbody' });
+  this.configLines = []; // not strictly necessary, could iterate over the body children, but I like this better
+  this.addConfigLine();
+  this.controlView = spawn('div', this.view, { className: 'configcontrolview' }, [
+    spawn('button', null, { className: 'configadd', onclick: function() {that.addConfigLine()} }, this.props.addText || 'Add Row'),
+  ]);
 }
 
 
-var ScriptStep = function(parent, props, children) {
-  this.view = spawn('div', parent, props, children);
-  this.view.style.position = this.view.style.position || 'relative';
-  this.visible = true;
-
-  var that = this;
-  this.showButton = spawn('button', this.view, {onclick: function(){that.toggleShow();}, style: {zIndex: 10, position: 'relative'}}, 'show');
-
-  spawn('textarea', this.view, {style: {position: 'absolute', left: '0px', top: '0px', right: '0px', bottom: '0px', width: '100%', zIndex: '0', boxSizing: 'border-box'}})
-
-  this.setStyles();
+ConfigCard.prototype.addConfigLine = function(defaultKey, defaultVal) {
+  var that = me(this);
+  this.configLines.push(spawn('div', this.body, { className: 'configline', style: { display: 'flex' } }, {
+    key: spawn('input', null, { className: 'configkey', style: { flex: '1' }, value:defaultKey, placeholder: this.props.keyText || 'key' }),
+    val: spawn('input', null, { className: 'configval', style: { flex: '1' }, value:defaultVal, placeholder: 'value' }),
+    deleteButton: spawn('button', null, { className: 'configdelete', onclick: function() {that.removeConfigLine(this.parentElement)} }, 'x'),
+  }));
 }
-ScriptStep.prototype.setStyles = function() {
-  console.log('set styles');
-  var that = this;
-  if (!this.visible) {
-    this.view.style.flex = 'none';
-    this.showButton.innerHTML = 'show';
-  } else {
-    this.view.style.flex = '1';
-    this.showButton.innerHTML = 'hide';
+
+ConfigCard.prototype.removeConfigLine = function(configLine) {
+  abandon(configLine);
+  var position = this.configLines.indexOf(configLine);
+  if (position !== -1) {
+    this.configLines.splice(position, 1);
+  }
+  if (this.configLines.length === 0) {
+    this.addConfigLine();
   }
 }
-ScriptStep.prototype.toggleShow = function() {
-  this.visible = !this.visible;
-  this.setStyles();
+
+ConfigCard.prototype.getValue = function(evaluate) {
+  var ret = {};
+  this.configLines.forEach(function(line) {
+    var key = line.kids['key'].value;
+    var val = line.kids['val'].value;
+    if (key && key.length > 0) {
+      ret[key] = evaluate ? getEvaluatedString(val) : val;
+    }
+  },this);
+  return ret;
 }
 
-var RequestStepView = function(props) {
+// This is duplicated intentionally
+ConfigCard.prototype.evaluateAndSetConfig = function() {
+  var ret = {};
+  this.configLines.forEach(function(line) {
+    var key = line.kids['key'].value;
+    var val = line.kids['val'].value;
+    if (key && key.length > 0) {
+      ret[key] = getEvaluatedString(val);
+      window.config[key]=ret[key];
+    }
+  },this);
+  return ret;
+}
+
+ConfigCard.prototype.act = function() {
+  if (!window.config) window.config = {};
+  var result = this.evaluateAndSetConfig();
+  Promise.resolve(result);
+}
+
+ConfigCard.prototype.clear = function() {
+  for(var a = this.configLines.length - 1; a >= 0; a--) {
+    this.removeConfigLine(configLines[a]);
+  }
+}
+ConfigCard.prototype.saveState = function() {
+  return this.getValue(false); // don't evaluate the values
+}
+ConfigCard.prototype.loadState = function(state) {
+  this.clear();
+  var keys = getObjectKeys(state);
+  keys.forEach(function(key){
+    this.addConfigLine(key, state[key]);
+  }, this);
+}
+
+DisplayCard = function(parent, props) {
   var that = me(this);
-
-  this.view = spawn('div', null, {style: {height: '350px', display: 'flex', flexDirection: 'column'}});
-  this.props = props;
-
-  this.headerView = spawn('div', this.view, {style: {display: 'flex', flexDirection: 'row', justifyContent: 'stretch'}});
-  this.type = spawn('select', this.headerView, {onchange: function(){
-    that.transform(that.type.value);
-  }}, [
-    spawn('option', null, null, 'RESOURCE'),
-    spawn('option', null, null, 'SCRIPT'),
-    spawn('option', null, null, 'MOD_RESOURCE'),
-  ]);
-
-  this.headerViewChange = spawn('div', this.headerView, {style: {display: 'flex', flexDirection: 'row', justifyContent: 'stretch'}});
-  this.headerViewA = spawn('div', null, {style: {display: 'flex', flexDirection: 'row', justifyContent: 'stretch'}});
-  this.headerViewB = spawn('div', null, {style: {display: 'flex', flexDirection: 'row', justifyContent: 'stretch'}});
-
-  this.transform('RESOURCE');
-
-  this.url = spawn('input', this.headerViewA, {placeholder: 'url'});
-  this.parameters = spawn('input', this.headerViewA, {placeholder: 'parameters'});
-
-  this.verb = spawn('select', this.headerViewA, null, [
-    spawn('option', null, null, 'GET'),
-    spawn('option', null, null, 'POST'),
-    spawn('option', null, null, 'PATCH'),
-    spawn('option', null, null, 'PUT'),
-    spawn('option', null, null, 'DELETE'),
-  ]);
-
-  this.headers = spawn('input', this.headerViewA, {placeholder: 'headers'});
-
-  this.accept = spawn('button', this.headerViewA, { onclick: function() {
-    that.props.act && that.props.act({action: 'accept', url: that.url.value, parameters: that.parameters.value, verb: that.verb.value, headers: that.headers.value});
-  }}, 'accept');
-
-  this.response = spawn('div', this.view, {style: {backgroundColor: '#333', color: '#fff', padding: '10px', flex: '1', overflowY: 'auto'}});
-  this.sstep = new ScriptStep(this.view, {style: {backgroundColor: '#00a8ff', color: '#fff', padding: '10px', flex: '1', overflowY: 'auto'}});
+  this.props = props || {};
+  this.view = spawn('div', parent, { className: 'displayview' });
+  this.subject = spawn('input', this.view, { className: 'displayinput', placeholder: 'toDisplay (defaults to last results)' });
+  this.display = spawn('textarea', this.view, { className: 'displayoutput' });
 }
-var RequestStepModel = function() {
-  this.url = 'http://api-dev.dispatch.me';
-  this.verb = 'GET';
-  this.headers = '';
-  this.parameters = '';
+
+DisplayCard.prototype.act = function() {
+  this.display.value = this.subject.value ? eval(this.subject.value) : window.lastResult;
+  return Promise.resolve();
 }
-var RequestStepController = function() {
+
+DisplayCard.prototype.clear = function() {
+  this.subject.value = '';
+  this.display.value = '';
+}
+DisplayCard.prototype.saveState = function() {
+  return {subject: this.subject.value};
+}
+DisplayCard.prototype.loadState = function(state) {
+  this.clear();
+  this.subject.value = state.subject;
+}
+
+
+ScriptCard = function(parent) {
   var that = me(this);
-  this.model = new RequestStepModel();
-  this.view = new RequestStepView({act: that.onViewAction});
+  this.view = spawn('div', parent, { className: 'scriptview', style: { backgroundColor: '#eee', color: '#fff' } });
+  this.text = spawn('textarea', this.view, { className: 'scripttext' });
 }
 
-RequestStepModel.prototype.getParameters = function() {
+ScriptCard.prototype.act = function() {
+  var result = eval(this.getValue());
+  window.lastResult = result;
+  Promise.resolve(result);
+}
+
+ScriptCard.prototype.getValue = function() {
+  return this.text.value;
+}
+ScriptCard.prototype.saveState = function() {
+  return {script: this.text.value};
+}
+ScriptCard.prototype.loadState = function(state) {
+  this.text.value = (state && state.script) || '';
+}
+
+
+RequestCard = function(parent) {
+  var that = me(this);
+  this.view = spawn('div', parent, { className: 'requestview' });
+  this.header = spawn('div', this.view, { className: 'requestheader' }, [
+    this.verb = spawn('select', null, { className: 'requestverb', onchange: function() {
+      // that.showContent(this.value);
+    }}, [
+      spawn('option', null, null, 'GET'),
+      spawn('option', null, null, 'POST'),
+      spawn('option', null, null, 'PATCH'),
+      spawn('option', null, null, 'PUT'),
+      spawn('option', null, null, 'DELETE'),
+    ]),
+    this.url = spawn('input', null, { className: 'requesturl', placeholder: 'url' }),
+    this.mime = spawn('select', null, { className: 'requestmime', onchange: function() {
+      that.setBodyType(this.value);
+    }}, [
+      spawn('option', null, null, 'Form'),
+      spawn('option', null, null, 'Raw'),
+      spawn('option', null, null, 'Json'),
+      spawn('option', null, null, 'Xml'),
+    ]),
+  ]);
+  this.headers = new ConfigCard(this.view, {addText: 'Add Header', keyText: 'Header'});
+  this.body = spawn('div', this.view, { className: 'requestbody' });
+  this.footer = spawn('div', this.view, { className: 'requestfooter', });
+  this.results = new ScriptCard(this.view);
+  this.results.view.style.display = 'none';
+
+  this.verb.onchange();
+  this.mime.onchange();
+}
+
+
+RequestCard.prototype.getParameters = function() {
   return {
-    'url': this.url,
-    'verb': this.verb || 'GET',
-    'headers': this.headers,
-    'parameters': this.parameters,
-    'username': this.username,
-    'password': this.password,
+    'url': getEvaluatedString(this.url.value),
+    'verb': this.verb.value || 'GET',
+    'headers': this.headers.getValue(),
+    'parameters': this.bodyType === 'Form' ? this.bodyCard.getValue(true) : getEvaluatedString(this.bodyCard.getValue()),
+    'mime': this.mime.value,
+    // 'username': this.username,
+    // 'password': this.password,
   };
 }
-RequestStepModel.prototype.request = function(callback) {
+RequestCard.prototype.request = function() {
   console.log('requesting', this.getParameters());
-  httpVERB('request/', 'POST', JSON.stringify(this.getParameters()), null).then((results) => {
-    try{
-      var parsed = JSON.parse(results);
-      callback && callback(parsed);
-    } catch(err) {
-      console.log('json err', err, results);
-    }
-  });
+  return httpVERB('request/', 'POST', JSON.stringify(this.getParameters()), null);
 }
-
-RequestStepView.prototype.displayIn = function(parent) {
-  parent.appendChild(this.view);
-}
-RequestStepView.prototype.show = function(data) {
-  this.response.innerHTML = data;
-}
-RequestStepView.prototype.transform = function(data) {
-  this.headerViewChange.innerHTML = '';
-  if (data === 'RESOURCE')
-    adopt(this.headerViewA, this.headerViewChange);
-  else if (data === 'SCRIPT')
-    adopt(this.headerViewB, this.headerViewChange);
-
-}
-
-RequestStepController.prototype.onViewChange = function(action, data) {
-
-}
-RequestStepController.prototype.onViewAction = function(action){
-  this.model.url = action.url;
-  this.model.verb = action.verb;
-  this.model.parameters = action.parameters;
-  this.model.headers = action.headers;
+RequestCard.prototype.act = function() {
   var that = this;
-  this.model.request(function(data){
-    that.view.show(makereadable(JSON.stringify(data, null, '\t')));
+  return new Promise(function(resolve, reject) {
+    that.request().then(function(data) {
+      if (that.mime.value==='Json') {
+        try{
+          var parsed = JSON.parse(data);
+          window.lastResult = parsed;
+          resolve(parsed);
+          return;
+        } catch (err) {
+          reject(err);
+        }
+      }
+      window.lastResult = data;
+      resolve(parsed);
+    });
   });
 }
-RequestStepController.prototype.onModelChange = function(action, data) {
+RequestCard.prototype.saveState = function() {
+  return {verb: this.verb.value, url: this.url.value, mime: this.mime.value, headers: this.headers.saveState(), bodyType: this.bodyType, body: this.bodyCard && this.bodyCard.saveState()};
+}
+RequestCard.prototype.loadState = function(state) {
+  if (!state) state = {};
+  this.verb.value = state.verb || '';
+  this.url.value = state.url || '';
+  this.mime.value = state.mime || 'Form';
+  this.headers.loadState(state.headers);
+  this.setBodyType(state.bodyType || this.mime.value);
+  this.bodyCard.loadState(state.body || {});
+}
+RequestCard.prototype.setBodyType = function(type) {
+  console.log()
+  this.lastData = null;
+  if (this.bodyCard) {
+    if (this.bodyType == type) return;
+    if (this.bodyType == 'Form') {
+      this.lastData = this.bodyCard.saveState();
+    } else {
+      try {
+        this.lastData = JSON.parse(this.bodyCard.saveState());
+      } catch(err) {
+        this.lastData = this.bodyCard.saveState();
+      }
+    }
+    abandon(this.bodyCard.view);
+    this.bodyCard = null;
+  }
+  this.bodyType = type;
+  if (type === 'Form') {
+    this.bodyCard = new ConfigCard(this.body, { addText: 'Add Body Parameter', keyText: 'Body Parameter' });
+    if (this.lastData) {
+      this.bodyCard.loadState(this.lastData);
+    }
+  } else {
+    this.bodyCard = new ScriptCard(this.body);
+    if (this.lastData) {
+      this.bodyCard.loadState(JSON.stringify(this.lastData));
+    }
+  }
+}
 
+Timeline.prototype.closeCard = function(card) {
+  if (card) {
+    abandon(card.view);
+    var position = this.cards.indexOf(card);
+    if (position !== -1) {
+      this.cards.splice(position, 1);
+    }
+  }
+  if (this.cards.length === 0) {
+    this.addCard('CONFIG');
+  }
+}
+
+Timeline.prototype.addCard = function(initialCard) {
+  var that = this;
+  this.cards.push(new Card(this.cardView, { onClose: that.closeCard, initialCard }));
+}
+
+Card.prototype.showContent = function(contentType) {
+  if (contentType === this.contentType) return
+  this.contentType = contentType;
+
+  if (this.innerView) {
+    abandon(this.innerView.view);
+  }
+  this.innerView = null;
+
+  if (contentType === 'CONFIG') {
+    this.innerView = new ConfigCard(this.content);
+  } else if (contentType === 'REQUEST') {
+    this.innerView = new RequestCard(this.content, contentType);
+  } else if (contentType === 'ACT') {
+    this.innerView = new ScriptCard(this.content);
+  } else if (contentType === 'DISPLAY') {
+    this.innerView = new DisplayCard(this.content);
+  } else if (contentType === 'IF') {
+
+  } else if (contentType === 'TEMPLATE') {
+
+  } else if (contentType === 'REGEX') {
+
+  }
+}
+Card.prototype.act = function() {
+  return this.innerView ? this.innerView.act() : Promise.resolve(true);
+}
+
+Card.prototype.saveState = function() {
+  return {contentType: this.contentType, content: this.innerView && this.innerView.saveState()};
+}
+Card.prototype.loadState = function(state) {
+  this.showContent(state.contentType);
+  this.innerView && this.innerView.loadState(state.content);
 }
 
 
 
-
-var tmp = new RequestStepController();
-tmp.view.displayIn(document.getElementById('main'));
-
-
+var timeline = new Timeline(document.getElementById('main'));
 

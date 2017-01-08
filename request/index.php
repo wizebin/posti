@@ -137,13 +137,18 @@ set_error_handler("exception_error_handler");
       if (isset($encoded['verb']))
         $this->verb = $encoded['verb'];
       if (isset($encoded['headers'])){
-        $this->headers = json_decode($encoded['headers'],true);
-
+        $this->headers = $encoded['headers'];
       } else {
         array_push($this->debug, $encoded);
       }
-      if (isset($encoded['content']))
-        $this->content = $encoded['content'];
+      if (isset($encoded['mime'])){
+        $this->mime = $encoded['mime'];
+        if (strtolower($this->mime) == 'json'){
+          $encoded['parameters']=json_decode($encoded['parameters']);
+        }
+      }
+      if (isset($encoded['parameters']))
+        $this->content = $encoded['parameters'];
       if (isset($encoded['username']))
         $this->username = $encoded['username'];
       if (isset($encoded['password']))

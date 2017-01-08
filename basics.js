@@ -14,6 +14,15 @@ function isObject(obj) {
   return Object.prototype.toString.call(obj) === '[object Object]'
 }
 
+
+/**
+
+  spawning an element this way makes life really easy in a lot of ways, but you have to understand a few things to use this to it's fullest potential
+
+  1. element must either be a string, or a type that conforms to : new Type(parent, props, children);
+
+**/
+
 function spawn(element, parent, props, children) {
   var el = document.createElement(element);
   if (props!=undefined) {
@@ -44,6 +53,13 @@ function spawn(element, parent, props, children) {
       }, this);
     } else if (isString(children)) {
       el.innerHTML=children;
+    } else if (isObject(children)){
+      var keys = getObjectKeys(children);
+      if (!el.kids) el.kids = {}; // named children
+      keys.forEach(function(key){
+        el.appendChild(children[key]);
+        el.kids[key] = children[key];
+      },this);
     } else {
       el.innerHTML=JSON.stringify(children);
     }
@@ -90,7 +106,8 @@ function adopt(element, parent) {
 }
 
 function abandon(element) {
-  element.parent && element.parent.removeChild(element);
+  console.log('abandon', element, element.parentElement);
+  element.parentElement && element.parentElement.removeChild(element);
 }
 
 function stopBubble(event) {
