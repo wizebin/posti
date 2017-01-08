@@ -14,14 +14,9 @@ function isObject(obj) {
   return Object.prototype.toString.call(obj) === '[object Object]'
 }
 
-
-/**
-
-  spawning an element this way makes life really easy in a lot of ways, but you have to understand a few things to use this to it's fullest potential
-
-  1. element must either be a string, or a type that conforms to : new Type(parent, props, children);
-
-**/
+function arrayMove(array, from, to) {
+    array.splice(to, 0, array.splice(from, 1)[0]);
+}
 
 function spawn(element, parent, props, children) {
   var el = document.createElement(element);
@@ -106,7 +101,6 @@ function adopt(element, parent) {
 }
 
 function abandon(element) {
-  console.log('abandon', element, element.parentElement);
   element.parentElement && element.parentElement.removeChild(element);
 }
 
@@ -126,8 +120,6 @@ function prependElement(parent,child) {
 function removeAllChildren(element) {
   while (element && element.lastChild) element.removeChild(element.lastChild);
 }
-
-
 
 const httpVERB = (url, verb, params, headers) => {
   return new Promise((resolve, reject) => {
@@ -260,6 +252,15 @@ function getPageWidth() {
   if (document.body) {
   return document.body.clientWidth;
   }
+}
+
+function randomString() {
+  var chars = []; // 97 - 122 lower case // 65 - 90 upper case
+  for(var a = 0; a < Math.floor(Math.random() * 10) + 5; a++) {
+    chars.push(Math.floor(Math.random() * (122 - 97)) + 97);
+  }
+
+  return String.fromCharCode.apply(this, chars);
 }
 
 function capitalizeFirstLetter(string) {
