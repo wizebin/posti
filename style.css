@@ -27,6 +27,9 @@ textarea{
   width: 100%;
   height: 100%;
 }
+.timelineview {
+  flex: 1;
+}
 .maincontrols {
   padding: 10px;
   display: flex;
@@ -58,12 +61,17 @@ textarea{
   overflow: hidden;
   border-radius: 3px;
 }
+.cardclose:hover {
+  color: #f00;
+  cursor: pointer;
+}
 .scripttext, .displayoutput {
   width: 100%;
   height: 100%;
   resize: vertical;
   min-height: 200px;
   padding: 5px;
+  flex: 1;
 }
 .displayview {
   margin-top: 10px;
@@ -99,7 +107,7 @@ textarea{
 .dropcardview {
   border: 5px dashed #afa;
   padding: 5px;
-  background-color: #efe;
+  background-color: transparent;
 }
 .dropcardview *{
   visibility:hidden;
@@ -135,12 +143,20 @@ textarea{
   flex-direction: column;
 }
 .requestview {
-
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 .requestheader {
+  flex: 0 0 30px;
   height: 30px;
   display: flex;
   justify-content: space-between;
+}
+.requestbody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 .requestverb {
 
@@ -212,6 +228,9 @@ textarea{
 }
 .scriptview {
   margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 .scripttext {
 

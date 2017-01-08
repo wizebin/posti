@@ -190,7 +190,7 @@ DisplayCard = function(parent, props) {
 }
 
 DisplayCard.prototype.act = function() {
-  this.display.value = this.subject.value ? eval(this.subject.value) : window.lastResult;
+  this.display.value = this.subject.value ? eval(this.subject.value) : JSON.stringify(window.lastResult, null, 4);
   return Promise.resolve();
 }
 
@@ -252,14 +252,13 @@ RequestCard = function(parent, props) {
       spawn('option', null, null, 'Form'),
       spawn('option', null, null, 'Raw'),
       spawn('option', null, null, 'Json'),
-      spawn('option', null, null, 'Xml'),
+      // spawn('option', null, null, 'Xml'),
     ]),
   ]);
-  this.headers = new ConfigCard(this.view, {addText: 'Add Header', keyText: 'Header', lockDrag: this.props.lockDrag, unlockDrag: this.props.unlockDrag});
+  this.headerWrap = spawn('div', this.view, { className: 'headerbody' });
+  this.headers = new ConfigCard(this.headerWrap, {addText: 'Add Header', keyText: 'Header', lockDrag: this.props.lockDrag, unlockDrag: this.props.unlockDrag});
   this.body = spawn('div', this.view, { className: 'requestbody' });
   this.footer = spawn('div', this.view, { className: 'requestfooter', });
-  this.results = new ScriptCard(this.view, { lockDrag: this.props.lockDrag, unlockDrag: this.props.unlockDrag });
-  this.results.view.style.display = 'none';
 
   this.verb.onchange();
   this.mime.onchange();
@@ -314,7 +313,13 @@ RequestCard.prototype.setBodyType = function(type) {
   if (this.bodyCard) {
     if (this.bodyType == type) return;
     if (this.bodyType == 'Form') {
-
+      this.lastData = this.bodyCard.getOrderedValue(false);
+    } else {
+      var parsed = JSON.parse(this.bodyCard.getValue(false));
+      var keys = getObjectKeys(parsed);
+      this.lastData = keys.map(function(key){
+        return { key, value: parsed[key] };
+      }, this);
     }
     abandon(this.bodyCard.view);
     this.bodyCard = null;
@@ -322,8 +327,20 @@ RequestCard.prototype.setBodyType = function(type) {
   this.bodyType = type;
   if (type === 'Form') {
     this.bodyCard = new ConfigCard(this.body, { addText: 'Add Body Parameter', keyText: 'Body Parameter', lockDrag: this.props.lockDrag, unlockDrag: this.props.unlockDrag});
+    if (this.lastData) {
+      this.bodyCard.loadState(this.lastData);
+      this.lastData = null;
+    }
   } else {
     this.bodyCard = new ScriptCard(this.body, { lockDrag: this.props.lockDrag, unlockDrag: this.props.unlockDrag });
+    if (this.lastData) {
+      var parsed = this.lastData.reduce(function(culm, row){
+        culm[row.key] = row.value;
+        return culm;
+      },{});
+      this.bodyCard.loadState({ script: JSON.stringify(parsed, null, 4) });
+      this.lastData = null;
+    }
   }
 }
 
@@ -459,6 +476,6 @@ Card.prototype.loadState = function(state) {
 }
 
 
-
-var timeline = new Timeline(document.getElementById('main'));
+var timelineWrapper = spawn('div', document.getElementById('main'), { style: { display: 'flex' }});
+var timeline = new Timeline(timelineWrapper);
 
