@@ -81,7 +81,7 @@ textarea{
 
   flex: 1;
 }
-.cardview, .activecardview {
+.cardview, .activecardview, .dropcardview {
   display: inline-flex;
   flex-direction: column;
   width: 400px;
@@ -95,6 +95,14 @@ textarea{
   -o-transition: background-color 500ms linear;
   -ms-transition: background-color 500ms linear;
   transition: background-color 500ms linear;
+}
+.dropcardview {
+  border: 5px dashed #afa;
+  padding: 5px;
+  background-color: #efe;
+}
+.dropcardview *{
+  visibility:hidden;
 }
 .cardview {
   background-color: #fafafa;

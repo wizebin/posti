@@ -344,7 +344,9 @@ Timeline.prototype.startingDrag = function(card, event) {
   this.dragging = card;
 }
 Timeline.prototype.beingDraggedOver = function(card, event) {
-
+  this.cards.forEach(function(icard){
+    icard.view.className = (icard === card && icard != this.dragging) ? 'dropcardview' : 'cardview';
+  }, this);
 }
 Timeline.prototype.dropped = function(card, event) {
   if (this.dragging && this.dragging != card) {
@@ -363,7 +365,9 @@ Timeline.prototype.dropped = function(card, event) {
   }
 }
 Timeline.prototype.stoppedDrag = function(card, event) {
-
+  this.cards.forEach(function(card){
+    card.view.className = 'cardview';
+  });
 }
 
 Timeline.prototype.addCard = function(initialCard) {
