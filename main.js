@@ -8,6 +8,14 @@ function getEvaluatedString(str) {
   }
 }
 
+function getObjectAsHeaderArray(obj) {
+  var keys = getObjectKeys(obj);
+  return keys.reduce(function(culm, key) {
+    culm.push(`${key}: ${obj[key]}`);
+    return culm;
+  },[]);
+}
+
 var Timeline = function(parent, props) {
   var that = me(this);
   this.view = spawn('div', parent, objectAssign({ className: 'timelineview' }, props));
@@ -26,11 +34,25 @@ var Timeline = function(parent, props) {
     }, Promise.resolve(true));
   } }, 'Perform');
 
+  this.stateText = spawn('input', this.view, { placeholder: 'state text' });
+
   this.saveButton = spawn('button', this.view, { className: 'timelinesave', onclick: function() {
-    that.state = that.cards.map(function(card){
+    that.stateText.value = JSON.stringify(that.cards.map(function(card){
       return card.saveState();
-    });
+    }));
   } }, 'Save Configuration');
+
+  this.loadButton = spawn('button', this.view, { className: 'timelinesave', onclick: function() {
+    that.clear();
+    try {
+      JSON.parse(that.stateText.value).forEach(function(cardstate){
+        var buf = that.addCard();
+        buf.loadState(cardstate);
+      }, this);
+    } catch (err) {
+      console.log('state load error', err);
+    }
+  } }, 'Load Configuration');
 
   this.addCard('CONFIG');
 }
@@ -75,19 +97,19 @@ var ConfigCard = function(parent, props) {
 ConfigCard.prototype.addConfigLine = function(defaultKey, defaultVal) {
   var that = me(this);
   this.configLines.push(spawn('div', this.body, { className: 'configline', style: { display: 'flex' } }, {
-    key: spawn('input', null, { className: 'configkey', style: { flex: '1' }, value:defaultKey, placeholder: this.props.keyText || 'key' }),
-    val: spawn('input', null, { className: 'configval', style: { flex: '1' }, value:defaultVal, placeholder: 'value' }),
+    key: spawn('input', null, { className: 'configkey', style: { flex: '1' }, value:defaultKey || '', placeholder: this.props.keyText || 'key' }),
+    val: spawn('input', null, { className: 'configval', style: { flex: '1' }, value:defaultVal || '', placeholder: 'value' }),
     deleteButton: spawn('button', null, { className: 'configdelete', onclick: function() {that.removeConfigLine(this.parentElement)} }, 'x'),
   }));
 }
 
-ConfigCard.prototype.removeConfigLine = function(configLine) {
+ConfigCard.prototype.removeConfigLine = function(configLine, force) {
   abandon(configLine);
   var position = this.configLines.indexOf(configLine);
   if (position !== -1) {
     this.configLines.splice(position, 1);
   }
-  if (this.configLines.length === 0) {
+  if (this.configLines.length === 0 && !force) {
     this.addConfigLine();
   }
 }
@@ -118,25 +140,37 @@ ConfigCard.prototype.evaluateAndSetConfig = function() {
   return ret;
 }
 
+ConfigCard.prototype.getOrderedValue = function(evaluate) {
+  var ret = [];
+  this.configLines.forEach(function(line) {
+    var key = line.kids['key'].value;
+    var val = line.kids['val'].value;
+    if (key && key.length > 0) {
+      ret.push({key, value: evaluate ? getEvaluatedString(val) : val});
+    }
+  },this);
+  return ret;
+}
+
 ConfigCard.prototype.act = function() {
   if (!window.config) window.config = {};
   var result = this.evaluateAndSetConfig();
   Promise.resolve(result);
 }
 
-ConfigCard.prototype.clear = function() {
+ConfigCard.prototype.clear = function(force) {
   for(var a = this.configLines.length - 1; a >= 0; a--) {
-    this.removeConfigLine(configLines[a]);
+    this.removeConfigLine(this.configLines[a], force);
   }
 }
 ConfigCard.prototype.saveState = function() {
-  return this.getValue(false); // don't evaluate the values
+  return this.getOrderedValue(false); // don't evaluate the values
 }
 ConfigCard.prototype.loadState = function(state) {
-  this.clear();
-  var keys = getObjectKeys(state);
-  keys.forEach(function(key){
-    this.addConfigLine(key, state[key]);
+  console.log('loading state', state);
+  this.clear(state.length > 0);
+  state.forEach(function(line){
+    this.addConfigLine(line.key, line.value);
   }, this);
 }
 
@@ -222,13 +256,12 @@ RequestCard = function(parent) {
   this.mime.onchange();
 }
 
-
 RequestCard.prototype.getParameters = function() {
   return {
     'url': getEvaluatedString(this.url.value),
     'verb': this.verb.value || 'GET',
-    'headers': this.headers.getValue(),
-    'parameters': this.bodyType === 'Form' ? this.bodyCard.getValue(true) : getEvaluatedString(this.bodyCard.getValue()),
+    'headers': getObjectAsHeaderArray(this.headers.getValue(true)),
+    'parameters': this.bodyType === 'Form' ? encodeURIObject(this.bodyCard.getValue(true)) : getEvaluatedString(this.bodyCard.getValue()),
     'mime': this.mime.value,
     // 'username': this.username,
     // 'password': this.password,
@@ -271,17 +304,10 @@ RequestCard.prototype.loadState = function(state) {
 }
 RequestCard.prototype.setBodyType = function(type) {
   console.log()
-  this.lastData = null;
   if (this.bodyCard) {
     if (this.bodyType == type) return;
     if (this.bodyType == 'Form') {
-      this.lastData = this.bodyCard.saveState();
-    } else {
-      try {
-        this.lastData = JSON.parse(this.bodyCard.saveState());
-      } catch(err) {
-        this.lastData = this.bodyCard.saveState();
-      }
+
     }
     abandon(this.bodyCard.view);
     this.bodyCard = null;
@@ -289,18 +315,12 @@ RequestCard.prototype.setBodyType = function(type) {
   this.bodyType = type;
   if (type === 'Form') {
     this.bodyCard = new ConfigCard(this.body, { addText: 'Add Body Parameter', keyText: 'Body Parameter' });
-    if (this.lastData) {
-      this.bodyCard.loadState(this.lastData);
-    }
   } else {
     this.bodyCard = new ScriptCard(this.body);
-    if (this.lastData) {
-      this.bodyCard.loadState(JSON.stringify(this.lastData));
-    }
   }
 }
 
-Timeline.prototype.closeCard = function(card) {
+Timeline.prototype.closeCard = function(card, force) {
   if (card) {
     abandon(card.view);
     var position = this.cards.indexOf(card);
@@ -308,14 +328,22 @@ Timeline.prototype.closeCard = function(card) {
       this.cards.splice(position, 1);
     }
   }
-  if (this.cards.length === 0) {
+  if (this.cards.length === 0 && !force) {
     this.addCard('CONFIG');
   }
 }
 
 Timeline.prototype.addCard = function(initialCard) {
   var that = this;
-  this.cards.push(new Card(this.cardView, { onClose: that.closeCard, initialCard }));
+  var nextCard = new Card(this.cardView, { onClose: that.closeCard, initialCard });
+  this.cards.push(nextCard);
+  return nextCard;
+}
+
+Timeline.prototype.clear = function() {
+  for(var a = this.cards.length-1; a >= 0; a--) {
+    this.closeCard(this.cards[a], true);
+  }
 }
 
 Card.prototype.showContent = function(contentType) {
@@ -344,6 +372,7 @@ Card.prototype.showContent = function(contentType) {
   }
 }
 Card.prototype.act = function() {
+  console.log('card action');
   return this.innerView ? this.innerView.act() : Promise.resolve(true);
 }
 
@@ -351,6 +380,7 @@ Card.prototype.saveState = function() {
   return {contentType: this.contentType, content: this.innerView && this.innerView.saveState()};
 }
 Card.prototype.loadState = function(state) {
+  this.options.value=state.contentType;
   this.showContent(state.contentType);
   this.innerView && this.innerView.loadState(state.content);
 }

@@ -10,7 +10,7 @@ set_error_handler("exception_error_handler");
 
   function detectMimeType($content) {
     if (strlen($content) > 0) {
-      if ($content[0] == '{') return 'json';
+      if ($content[0] == '{' && $content[strlen($content)-1] == '}') return 'json';
       else if ($content[0] == '<') return 'xml';
     }
     return '';
@@ -30,7 +30,6 @@ set_error_handler("exception_error_handler");
     public $content = '';
     public $username = '';
     public $password = '';
-    public $debug = [];
 
     public $status = null;
     public $body = null;
@@ -75,7 +74,6 @@ set_error_handler("exception_error_handler");
     public function setHeaders() {
       if (count($this->headers) > 0) {
         curl_setopt($this->curl, CURLOPT_HTTPHEADER, $this->headers); //expected to be in an array('header: value', 'other header: value');
-        array_push($this->debug, $this->headers);
       }
       else
         curl_setopt($this->curl, CURLOPT_HTTPHEADER, $this->guessHeaders());
@@ -114,6 +112,10 @@ set_error_handler("exception_error_handler");
       $this->setUrl();
 
       $this->body = curl_exec($this->curl);
+      if (detectMimeType($this->body) === 'json') {
+        $this->body = json_decode($this->body);
+      }
+
 
       $this->status = curl_getinfo($this->curl, CURLINFO_RESPONSE_CODE);
       $this->effectiveUrl = curl_getinfo($this->curl, CURLINFO_EFFECTIVE_URL);
@@ -138,14 +140,6 @@ set_error_handler("exception_error_handler");
         $this->verb = $encoded['verb'];
       if (isset($encoded['headers'])){
         $this->headers = $encoded['headers'];
-      } else {
-        array_push($this->debug, $encoded);
-      }
-      if (isset($encoded['mime'])){
-        $this->mime = $encoded['mime'];
-        if (strtolower($this->mime) == 'json'){
-          $encoded['parameters']=json_decode($encoded['parameters']);
-        }
       }
       if (isset($encoded['parameters']))
         $this->content = $encoded['parameters'];
@@ -170,7 +164,7 @@ set_error_handler("exception_error_handler");
       $ret['sizeUp']=$this->sizeUp;
       $ret['contentType']=$this->contentType;
       $ret['ip']=$this->ip;
-      $ret['debug']=$this->debug;
+
       return $ret;
     }
 
