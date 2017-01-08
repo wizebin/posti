@@ -1,16 +1,27 @@
+function isString(str) {
+  return typeof str === 'string' || str instanceof String;
+}
 
-function addQuickElement(parent, element, content, props, children){
+function getObjectKeys(obj) {
+  var ret = [];
+  for (var key in obj) {
+    if (obj.hasOwnProperty(key)) ret.push(key);
+  }
+  return ret;
+}
+
+function isObject(obj) {
+  return Object.prototype.toString.call(obj) === '[object Object]'
+}
+
+function spawn(element, parent, props, children) {
   var el = document.createElement(element);
-  if (content!=undefined)
-    el.innerHTML=content;
-  if (props!=undefined){
-    // Object.assign(el, props);
-
+  if (props!=undefined) {
     var keys = getObjectKeys(props);
-    keys.forEach(function(key){
-      if (Object.prototype.toString.call(props[key]) === '[object Object]') {
+    keys.forEach(function(key) {
+      if (isObject(props[key])) {
         var subKeys = getObjectKeys(props[key]);
-        subKeys.forEach(function(innerKey){
+        subKeys.forEach(function(innerKey) {
           el[key][innerKey] = props[key][innerKey];
         });
       } else {
@@ -18,33 +29,88 @@ function addQuickElement(parent, element, content, props, children){
       }
     },this);
   }
-  parent && parent.appendChild(el);
-  children && children.forEach(function(child){
-    el.appendChild(child);
-  },this);
+  if (parent) {
+    if (isString(parent)) {
+      var parent = document.getElementById(parent);
+      parent && parent.appendChild(el);
+    } else if (parent.appendChild) {
+      parent.appendChild(el);
+    }
+  }
+  if (children) {
+    if (Array.isArray(children)) {
+      children.forEach(function(child) {
+        el.appendChild(child);
+      }, this);
+    } else if (isString(children)) {
+      el.innerHTML=children;
+    } else {
+      el.innerHTML=JSON.stringify(children);
+    }
+  }
   return el;
 }
 
-function prependElement(parent,child){
-  if (parent.firstChild!=null){
+var thatWrapper = function(instance) {
+  var that = this;
+  if (this!=instance)
+    this.that = instance;
+  var prototype=Object.getPrototypeOf(instance);
+  var keys = getObjectKeys(instance).concat(getObjectKeys(prototype));
+  keys.forEach(function(key) {
+    if (typeof(instance[key]) === "function") that[key] = instance[key].bind(instance);
+  },this);
+}
+
+var me = function(instance) {
+  if (!instance.transformedInstanceThis) {
+    thatWrapper.call(instance, instance);
+    instance.transformedInstanceThis=true;
+  }
+  return instance;
+}
+
+var objectAssign = function(destination, source) {
+  var parameters = Array.prototype.slice.call(arguments);
+  if (Object.assign) {
+    return Object.assign.apply(this, parameters);
+  }
+  var assigns = parameters.slice(1);
+  assigns.forEach(function(assign) {
+    var keys = getObjectKeys(assign);
+    keys.forEach(function(key) {
+      destination[key]=assign[key];
+    },this);
+  },this);
+  return destination;
+}
+
+function adopt(element, parent) {
+  parent.appendChild(element);
+}
+
+function abandon(element) {
+  element.parent && element.parent.removeChild(element);
+}
+
+function stopBubble(event) {
+  event.cancelBubble = true;
+  if(event.stopPropagation) event.stopPropagation();
+}
+
+function prependElement(parent,child) {
+  if (parent.firstChild!=null) {
     parent.insertBefore(child, parent.firstChild);
   } else{
     parent.appendChild(child);
   }
 }
 
-function removeAllChildren(element){
+function removeAllChildren(element) {
   while (element && element.lastChild) element.removeChild(element.lastChild);
 }
 
-function getObjectKeys(obj){
-  var ret = [];
-  for (var key in obj) {
-    if (!obj.hasOwnProperty(key)) continue;
-    ret.push(key);
-  }
-  return ret;
-}
+
 
 const httpVERB = (url, verb, params, headers) => {
   return new Promise((resolve, reject) => {
@@ -72,56 +138,6 @@ const httpVERB = (url, verb, params, headers) => {
     xhr.send(params);
   });
 };
-
-//parses JSON from response string
-var jsonVERB = function(url, verb, params, username, password, successHandler, errorHandler){
-  return httpVERB(url,verb,params,username,password,
-  function(data){
-  try{
-    successHandler&&successHandler(JSON.parse(data));
-  }
-  catch(err){
-    errorHandler && errorHandler("Error In jsonVERB (PROBABLY A SERVER JSON MISCONFIGURATION) Message("+err.message+") Data("+data+")");
-  }
-  },
-  function(data){
-  errorHandler && errorHandler("jsonVERB ERR: "+data);
-  });
-}
-
-//convenience http methods
-
-var postJSON = function(url, params, successHandler, errorHandler) {
-  return jsonVERB(url,'POST',params,null,null,successHandler, errorHandler);
-};
-var getJSON = function(url, successHandler, errorHandler) {
-  return jsonVERB(url, 'GET', null,null,null,successHandler, errorHandler);
-};
-var putJSON = function(url, params, successHandler, errorHandler){
-  return jsonVERB(url,'PUT',params,null,null, successHandler, errorHandler);
-}
-var patchJSON = function(url, params, successHandler, errorHandler){
-  return jsonVERB(url,'PUT',params,null,null,successHandler, errorHandler);
-}
-var deleteJSON = function(url, successHandler, errorHandler){
-  return jsonVERB(url,'DELETE',null,null,null,successHandler, errorHandler);
-}
-
-var postHTTP = function(url, params, username, password, successHandler, errorHandler) {
-  return httpVERB(url,'POST',params,username,password,successHandler, errorHandler);
-};
-var getHTTP = function(url, username, password, successHandler, errorHandler) {
-  return httpVERB(url, 'GET', null,username,password,successHandler, errorHandler);
-};
-var putHTTP = function(url, username, password, params, successHandler, errorHandler){
-  return httpVERB(url,'PUT',params,username,password, successHandler, errorHandler);
-}
-var patchHTTP = function(url, username, password, params, successHandler, errorHandler){
-  return httpVERB(url,'PUT',params,username,password,successHandler, errorHandler);
-}
-var deleteHTTP = function(url, username, password, successHandler, errorHandler){
-  return httpVERB(url,'DELETE',null,username,password,successHandler, errorHandler);
-}
 
 function setCookie(cname, cvalue, exdays) {
   var d = new Date();
@@ -159,7 +175,7 @@ function nodeScriptReplace(node) {
 function nodeScriptIs(node) {
   return node.tagName === 'SCRIPT';
 }
-function nodeScriptClone(node){
+function nodeScriptClone(node) {
   var script  = document.createElement("script");
   script.text = node.innerHTML;
   for( var i = node.attributes.length-1; i >= 0; i-- ) {
@@ -167,42 +183,37 @@ function nodeScriptClone(node){
   }
   return script;
 }
-function fixElementScripts(elid){
+function fixElementScripts(elid) {
   nodeScriptReplace(document.getElementById(elid));
 }
-function setElementContentWithScripts(element, content){
+function setElementContentWithScripts(element, content) {
   if (element==null)
     return false;
-  if (typeof element === 'string'){
+  if (typeof element === 'string') {
     element = document.getElementById(element);
   }
   element.innerHTML = content;
   nodeScriptReplace(element);
   return true;
 }
-function showBlock(obj){
-  document.getElementById(obj).style.display="block";
-}
-function hide(obj){
-  document.getElementById(obj).style.display="none";
-}
-function findElementZ(elementID){
+
+function findElementZ(elementID) {
   var element = document.getElementById(elementID);
   var zval = 0;
 
   var curElement = element;
   var foundVal = undefined;
 
-  while(curElement!=undefined){
+  while(curElement!=undefined) {
     var curZ = curElement.style.zIndex;
-    if (curZ!=undefined&&curZ!=""){
+    if (curZ!=undefined&&curZ!="") {
       foundVal=parseInt(curZ)
       break;
     }
     curElement=curElement.parentElement;
   }
 
-  if (foundVal!=undefined){
+  if (foundVal!=undefined) {
     zval=foundVal;
   }
   else{
@@ -211,61 +222,17 @@ function findElementZ(elementID){
 
   return zval;
 }
-function addDropdownToParentDirectional(setid, parent, content, matchParentWidthIfPossible,anchorCSS,flowCSS, zval){
-  if(anchorCSS==undefined){
-    anchorCSS='left:0px;bottom:0px;';
-  }
-  if (flowCSS==undefined){
-    flowCSS='top:0px;left:0px;';
-  }
-  var zval = findElementZ(parent) + 1;
 
-  var html = '<div id="'+setid+'" style="position:absolute;box-sizing:border-box;z-index:'+zval+';'+flowCSS+(matchParentWidthIfPossible?'min-width:100%;':'')+'">'+content+'</div>';
-
-  var element = document.getElementById(parent);
-
-  var newid = parent + 'dropdown';
-  element.onmouseover=function(){showBlock(newid);};
-  element.onmouseout=function(){hide(newid);};
-  element.position="relative";
-  var toadd = document.createElement('div');
-  toadd.id=newid;
-  toadd.setAttribute("style","position:absolute;"+anchorCSS+"z-index:"+zval);
-  toadd.onclick=function (evt){evt.cancelBubble = true;if(evt.stopPropagation) evt.stopPropagation();};
-  toadd.innerHTML=html;
-  element.appendChild(toadd);
-  hide(newid);
-}
-function changeParent(elementID,parentID){
-  var element = document.getElementById(elementID);
-  element.style.zIndex=findElementZ(parentID)+1;
-  document.getElementById(parentID).appendChild(element);
-}
-function addDropdownToParent(setid, parent, content, matchParentWidthIfPossible, zval){
-  addDropdownToParentDirectional(setid,parent,content,matchParentWidthIfPossible,'right:0px;bottom:0px;','right:0px;top:0px;');
-}
-function addDropdownBelowLeft(setid, parent, content, matchParentWidthIfPossible, zval){
-  addDropdownToParentDirectional(setid,parent,content,matchParentWidthIfPossible,'right:0px;bottom:0px;','right:0px;top:0px;');
-}
-function addDropdownBelowRight(setid, parent, content, matchParentWidthIfPossible, zval){
-  addDropdownToParentDirectional(setid,parent,content,matchParentWidthIfPossible,'left:0px;bottom:0px;','left:0px;top:0px;');
-}
-function addDropdownAboveLeft(setid, parent, content, matchParentWidthIfPossible, zval){
-  addDropdownToParentDirectional(setid,parent,content,matchParentWidthIfPossible,'right:0px;top:0px;','right:0px;bottom:0px;');
-}
-function addDropdownAboveRight(setid, parent, content, matchParentWidthIfPossible, zval){
-  addDropdownToParentDirectional(setid,parent,content,matchParentWidthIfPossible,'left:0px;top:0px;','left:0px;bottom:0px;');
-}
-//Return current body scroll pos
-function getScrollPos(){
-  if (document.documentElement.scrollTop!=0){
+function getScrollPos() {
+  if (document.documentElement.scrollTop!=0) {
     return document.documentElement.scrollTop;
   }
-  else if (document.body.scrollTop!=0){
+  else if (document.body.scrollTop!=0) {
     return document.body.scrollTop;
   }
   return 0;
 }
+
 function getPageWidth() {
   if (self.innerHeight) {
   return self.innerWidth;
@@ -276,12 +243,6 @@ function getPageWidth() {
   if (document.body) {
   return document.body.clientWidth;
   }
-}
-
-function valOrOther(val,other){
-  if (val!=null)
-    return val;
-  return other;
 }
 
 function capitalizeFirstLetter(string) {
@@ -298,42 +259,48 @@ function keyCallBack(a,e) {
   }
 }
 
-function todayUTC(){
+function todayUTC() {
   var d = new Date();
   d.setHours(0,0,0,0);
   return Math.round(d.getTime()/1000);
 }
-function tomorrowUTC(){
+
+function tomorrowUTC() {
   var d = new Date();
   d.setHours(0,0,0,0);
   return Math.round(d.getTime()/1000)+86400;
 }
 
-function makereadable(str){
+function makereadable(str) {
   if (str==null)
     return str;
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/(?:\r\n|\r|\n)/g, '<br/>').replace(/(?:[\t ])/g, '&nbsp;&nbsp;');
 }
-function makereadableline(str){
+
+function makereadableline(str) {
   if (str==null)
     return str;
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/(?:\r\n|\r|\n)/g, ' ');
 }
 
-function limitsize(str,maxchars){
+function limitsize(str,maxchars) {
   return str.substr(str,0,maxchars);
 }
-function quickdate(unix_timestamp){
+
+function quickdate(unix_timestamp) {
   var date = new Date(unix_timestamp*1000);
   return  (date.getMonth()+1) +"/" + date.getDate() + "/" + date.getFullYear();
 }
-function quickdatetime(unix_timestamp){
+
+function quickdatetime(unix_timestamp) {
   var date = new Date(unix_timestamp*1000);
   return  (date.getMonth()+1) +"/" + date.getDate() + "/" + date.getFullYear() + " " + date.getHours() + ":" + (date.getMinutes().toString().length==1?'0':'') + date.getMinutes();
 }
-function getUnixNow(){
+
+function getUnixNow() {
   return Math.round((new Date().getTime())/1000);
 }
+
 function randomColor() {
   var letters = '0123456789ABCDEF'.split('');
   var color = '#';
@@ -343,16 +310,6 @@ function randomColor() {
   return color;
 }
 
-function getInitials(inname){
-  if (inname==null)
-    return '';
-  var fromsplit = inname.split(' ');
-  var ret = '';
-  for(var a = 0; a < fromsplit.length; a++){
-    ret += fromsplit[a].charAt(0);
-  }
-  return ret;
-}
 String.prototype.escapeSpecialChars = function() {
     return this.replace(/\\\\/g,"\\\\")
          .replace(/\\n/g, "\\n")
