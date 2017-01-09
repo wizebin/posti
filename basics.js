@@ -2,16 +2,26 @@ function isString(str) {
   return typeof str === 'string' || str instanceof String;
 }
 
+function isObject(obj) {
+  return Object.prototype.toString.call(obj) === '[object Object]'
+}
+
+function isNode(o){
+  return (typeof Node === "object" ? o instanceof Node :
+    o && typeof o === "object" && typeof o.nodeType === "number" && typeof o.nodeName==="string");
+}
+
+function isElement(o){
+  return (typeof HTMLElement === "object" ? o instanceof HTMLElement : //DOM2
+    o && typeof o === "object" && o !== null && o.nodeType === 1 && typeof o.nodeName==="string");
+}
+
 function getObjectKeys(obj) {
   var ret = [];
   for (var key in obj) {
     if (obj.hasOwnProperty(key)) ret.push(key);
   }
   return ret;
-}
-
-function isObject(obj) {
-  return Object.prototype.toString.call(obj) === '[object Object]'
 }
 
 function arrayMove(array, from, to) {
@@ -44,7 +54,8 @@ function spawn(element, parent, props, children) {
   if (children) {
     if (Array.isArray(children)) {
       children.forEach(function(child) {
-        el.appendChild(child);
+        var tempchild = isElement(child) ? child : child.view;
+        el.appendChild(tempchild);
       }, this);
     } else if (isString(children)) {
       el.innerHTML=children;
@@ -52,8 +63,9 @@ function spawn(element, parent, props, children) {
       var keys = getObjectKeys(children);
       if (!el.kids) el.kids = {}; // named children
       keys.forEach(function(key){
-        el.appendChild(children[key]);
-        el.kids[key] = children[key];
+        var child = isElement(children[key]) ? children[key] : children[key].view;
+        el.appendChild(child);
+        el.kids[key] = child;
       },this);
     } else {
       el.innerHTML=JSON.stringify(children);

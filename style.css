@@ -51,6 +51,24 @@ textarea{
   display: flex;
   flex-wrap: wrap;
 }
+.toggleon, .toggleoff {
+  width: 20px;
+  height: 20px;
+  align-self: center;
+  border: 1px solid #ccc;
+  margin-left: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+}
+.toggleon:hover, .toggleoff:hover {
+  background-color: #eee;
+  cursor: pointer;
+}
+.toggleon {
+  color: #955;
+}
 .cardclose {
   background-color: transparent;
   color: #f88;
@@ -129,7 +147,7 @@ textarea{
 }
 .cardselect{
   flex: 1;
-  margin-right: 5px;
+  margin-right: 10px;
   padding: 5px 35px 5px 5px;
   font-size: 16px;
   height: 34px;

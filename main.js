@@ -16,6 +16,43 @@ function getObjectAsHeaderArray(obj) {
   },[]);
 }
 
+var ToggleButton = function(parent, props) {
+  var that = me(this);
+  this.props = props || {};
+  this.view = spawn('div', parent, { className: 'toggleView', onclick: that.onClick });
+  this.toggled = this.props.toggled || true;
+  this.showToggledState();
+}
+
+ToggleButton.prototype.setToggleState = function(toggled) {
+  this.toggled = toggled;
+  this.showToggledState();
+}
+
+ToggleButton.prototype.getValue = function() {
+  return this.toggled;
+}
+
+ToggleButton.prototype.showToggledState = function() {
+  console.log('toggled');
+  if (this.toggled) {
+    if (this.props.onClass) {
+      this.view.className = this.props.onClass;
+      this.view.innerHTML = '&#10003;';
+    }
+  } else {
+    if (this.props.offClass) {
+      this.view.className = this.props.offClass;
+      this.view.innerHTML = '';
+    }
+  }
+}
+
+ToggleButton.prototype.onClick = function() {
+  this.setToggleState(!this.getValue());
+  this.props.onclick && this.props.onclick(this.toggled);
+}
+
 var Timeline = function(parent, props) {
   var that = me(this);
   this.view = spawn('div', parent, objectAssign({ className: 'timelineview' }, props));
@@ -82,6 +119,7 @@ var Card = function(parent, props) {
     this.closer = spawn('button', null, { className: 'cardclose', onclick: function() {
       that.props.onClose && that.props.onClose(that);
     } }, 'Delete Step'),
+    this.toggle = new ToggleButton(null, { toggled: true, onClass: 'toggleon', offClass: 'toggleoff' }),
   ]);
   this.content = spawn('div', this.view, { className: 'cardcontent', style: { padding: '10px' } });
   if (this.props.initialCard) this.options.value = this.props.initialCard;
@@ -456,7 +494,7 @@ Card.prototype.act = function() {
   this.indicateActing();
   var that = this;
   ret = new Promise(function(resolve, reject) {
-    var prom = that.innerView && that.innerView.act();
+    var prom = that.toggle.getValue() && that.innerView && that.innerView.act();
     if (!prom) prom = Promise.resolve(true);
     prom.then(function(data){
       that.indicateFinishActing();
@@ -467,11 +505,13 @@ Card.prototype.act = function() {
 }
 
 Card.prototype.saveState = function() {
-  return {contentType: this.contentType, content: this.innerView && this.innerView.saveState()};
+  return {contentType: this.contentType, content: this.innerView && this.innerView.saveState(), enabled: this.toggle.getValue()};
 }
 Card.prototype.loadState = function(state) {
   this.options.value=state.contentType;
   this.showContent(state.contentType);
+  this.toggle.setToggleState(state.enabled);
+
   this.innerView && this.innerView.loadState(state.content);
 }
 
