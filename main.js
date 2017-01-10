@@ -16,6 +16,8 @@ function getObjectAsHeaderArray(obj) {
   },[]);
 }
 
+var errorList = [];
+
 var ToggleButton = function(parent, props) {
   var that = me(this);
   this.props = props || {};
@@ -62,40 +64,44 @@ var Timeline = function(parent, props) {
   this.cardCounter = 0;
 
   this.controlView = spawn('div', this.view, { className: 'maincontrols' });
+  this.controlRow = spawn('div', this.controlView, { className: 'buttoncontrols' });
 
   this.cardView = spawn('div', this.view, { className: 'cardwrapper' });
 
-  this.addButton = spawn('button', this.controlView, { className: 'controlbutton', onclick: function() {
+  this.addButton = spawn('button', this.controlRow, { className: 'controlbutton', onclick: function() {
     that.addCard();
   } }, 'Add Step');
 
-  this.actButton = spawn('button', this.controlView, { className: 'controlbutton', onclick: function() {
+  this.actButton = spawn('button', this.controlRow, { className: 'controlbutton', onclick: function() {
     that.cards.reduce(function(accumulator, card) {
       return accumulator.then(card.act);
     }, Promise.resolve(true));
   } }, 'Perform');
 
-  this.stateText = spawn('input', this.controlView, { className: 'statetext', placeholder: 'state text' });
+  // this.stateText = spawn('input', this.controlView, { className: 'statetext', placeholder: 'state text' });
 
-  this.saveButton = spawn('button', this.controlView, { className: 'controlbutton', onclick: function() {
-    that.stateText.value = JSON.stringify(that.cards.map(function(card){
-      return card.saveState();
-    }));
-  } }, 'Save Configuration');
+  // this.saveButton = spawn('button', this.controlView, { className: 'controlbutton', onclick: function() {
+  //   // that.stateText.value = b64EncodeUnicode(JSON.stringify(that.cards.map(function(card){
+  //     // return card.saveState();
+  //   // })));
+  // } }, 'Save Configuration');
 
-  this.loadButton = spawn('button', this.controlView, { className: 'controlbutton', onclick: function() {
-    that.clear();
-    try {
-      JSON.parse(that.stateText.value).forEach(function(cardstate){
-        var buf = that.addCard();
-        buf.loadState(cardstate);
-      }, this);
-    } catch (err) {
-      console.error('state load error', err);
-    }
-  } }, 'Load Configuration');
+  // this.loadButton = spawn('button', this.controlView, { className: 'controlbutton', onclick: function() {
+  //   // that.loadState(that.stateText.value);
+  // } }, 'Load Configuration');
+
+  this.link = spawn('a', this.controlView, { className: 'statelink', onmouseover: function(){that.setStateLink()}, onfocus: function(){that.setStateLink()}}, 'State Link');
 
   this.addCard('CONFIG');
+}
+
+Timeline.prototype.setStateLink = function() {
+  this.link.href = '#' + b64EncodeUnicode(this.saveState());
+}
+Timeline.prototype.saveState = function() {
+  return JSON.stringify(this.cards.map(function(card){
+    return card.saveState();
+  }));
 }
 
 
@@ -398,11 +404,13 @@ Timeline.prototype.closeCard = function(card, force) {
 Timeline.prototype.startingDrag = function(card, event) {
   this.dragging = card;
 }
+
 Timeline.prototype.beingDraggedOver = function(card, event) {
   this.cards.forEach(function(icard){
     icard.view.className = (icard === card && icard != this.dragging) ? 'dropcardview' : 'cardview';
   }, this);
 }
+
 Timeline.prototype.dropped = function(card, event) {
   if (this.dragging && this.dragging != card) {
     var cardPosition = this.cards.indexOf(this.dragging);
@@ -419,6 +427,7 @@ Timeline.prototype.dropped = function(card, event) {
     }
   }
 }
+
 Timeline.prototype.stoppedDrag = function(card, event) {
   this.cards.forEach(function(card){
     card.view.className = 'cardview';
@@ -444,6 +453,20 @@ Timeline.prototype.addCard = function(initialCard) {
 Timeline.prototype.clear = function() {
   for(var a = this.cards.length-1; a >= 0; a--) {
     this.closeCard(this.cards[a], true);
+  }
+}
+
+Timeline.prototype.loadState = function(stateString) {
+  this.clear();
+  try {
+    JSON.parse(stateString).forEach(function(cardstate){
+      var buf = this.addCard();
+      buf.loadState(cardstate);
+    }, this);
+  } catch (err) {
+    err.desc = 'timeline state load json error';
+    errorList.push(err);
+    console.error(err);
   }
 }
 
@@ -515,7 +538,21 @@ Card.prototype.loadState = function(state) {
   this.innerView && this.innerView.loadState(state.content);
 }
 
+var currentConfig = null;
+
+var hashLocation = window.location.hash.split('#');
+
+if (hashLocation.length > 1) {
+  var result = b64DecodeUnicode(hashLocation[1]);
+  currentConfig=result;
+}
+
+
+
+
 
 var timelineWrapper = spawn('div', document.getElementById('main'), { style: { display: 'flex' }});
 var timeline = new Timeline(timelineWrapper);
+
+if (currentConfig) timeline.loadState(currentConfig);
 

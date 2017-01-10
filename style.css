@@ -31,9 +31,16 @@ textarea{
   flex: 1;
 }
 .maincontrols {
-  padding: 10px;
+  padding: 10px 20px 10px 10px;
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #fff;
+}
+.buttoncontrols {
+  display: flex;
+  flex: 1;
+  justify-content: left;
 }
 .statetext {
   flex: 1;
@@ -152,7 +159,16 @@ textarea{
   background-color: #ddd;
   cursor: pointer;
 }
-.cardselect{
+.statelink {
+  text-decoration: none;
+  color: #aaa;
+  border-bottom: 1px solid #aaa;
+}
+.statelink:hover {
+  color: #00a8ff;
+  cursor: pointer;
+}
+.cardselect {
   flex: 1;
   margin-right: 10px;
   padding: 5px 35px 5px 5px;
