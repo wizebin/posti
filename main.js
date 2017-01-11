@@ -74,9 +74,7 @@ var Timeline = function(parent, props) {
   } }, 'Add Step');
 
   this.actButton = spawn('button', this.controlRow, { className: 'controlbutton', onclick: function() {
-    that.cards.reduce(function(accumulator, card) {
-      return accumulator.then(card.act).catch(function(err){});
-    }, Promise.resolve(true));
+    that.act();
   } }, 'Perform');
 
   this.link = spawn('a', this.controlView, { className: 'statelink', onmouseover: function(){that.setStateLink()}, onfocus: function(){that.setStateLink()}}, 'State Link');
@@ -310,10 +308,18 @@ RequestCard = function(parent, props) {
 }
 
 RequestCard.prototype.getParameters = function() {
+
+  var headers = this.headers.getValue(true);
+  if (!headers['Content-Type']) {
+    if (this.mime.value === 'Form') headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    else if (this.mime.value === 'Json') headers['Content-Type'] = 'application/json';
+    else if (this.mime.value === 'Xml') headers['Content-Type'] = 'application/xml';
+  }
+
   return {
     'url': getEvaluatedString(this.url.value),
     'verb': this.verb.value || 'GET',
-    'headers': getObjectAsHeaderArray(this.headers.getValue(true)),
+    'headers': getObjectAsHeaderArray(headers),
     'parameters': this.bodyType === 'Form' ? encodeURIObject(this.bodyCard.getValue(true)) : getEvaluatedString(this.bodyCard.getValue()),
     'mime': this.mime.value,
     // 'username': this.username,
@@ -484,6 +490,12 @@ Timeline.prototype.saveState = function() {
   return JSON.stringify(this.cards.map(function(card){
     return card.saveState();
   }));
+}
+
+Timeline.prototype.act = function() {
+  this.cards.reduce(function(accumulator, card) {
+    return accumulator.then(card.act).catch(function(err){});
+  }, Promise.resolve(true));
 }
 
 Card.prototype.lockDrag = function() {
