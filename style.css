@@ -118,7 +118,7 @@ textarea{
 
   flex: 1;
 }
-.cardview, .activecardview, .dropcardview {
+.cardview, .activecardview, .dropcardview, .carderror {
   display: inline-flex;
   flex-direction: column;
   min-width: 400px;
@@ -141,8 +141,25 @@ textarea{
 .dropcardview *{
   visibility:hidden;
 }
+.carderror {
+  background-color: #f00;
+}
 .cardview {
   background-color: #fafafa;
+}
+.errorview {
+  background-color: #faa;
+  padding: 10px;
+  height: 200px;
+  overflow: auto;
+}
+.errorcontent {
+  position: absolute;
+  top: 0px;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+  overflow: auto;
 }
 .activecardview {
   background-color: #afa;

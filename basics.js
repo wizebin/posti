@@ -288,10 +288,6 @@ function randomString() {
   return String.fromCharCode.apply(this, chars);
 }
 
-function capitalizeFirstLetter(string) {
-  return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
 function keyCallBack(a,e) {
   var event = e || window.event;
   var charCode = event.which || event.keyCode;
@@ -300,18 +296,6 @@ function keyCallBack(a,e) {
     a&&a();
     return false;
   }
-}
-
-function todayUTC() {
-  var d = new Date();
-  d.setHours(0,0,0,0);
-  return Math.round(d.getTime()/1000);
-}
-
-function tomorrowUTC() {
-  var d = new Date();
-  d.setHours(0,0,0,0);
-  return Math.round(d.getTime()/1000)+86400;
 }
 
 function makereadable(str) {
@@ -324,24 +308,6 @@ function makereadableline(str) {
   if (str==null)
     return str;
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/(?:\r\n|\r|\n)/g, ' ');
-}
-
-function limitsize(str,maxchars) {
-  return str.substr(str,0,maxchars);
-}
-
-function quickdate(unix_timestamp) {
-  var date = new Date(unix_timestamp*1000);
-  return  (date.getMonth()+1) +"/" + date.getDate() + "/" + date.getFullYear();
-}
-
-function quickdatetime(unix_timestamp) {
-  var date = new Date(unix_timestamp*1000);
-  return  (date.getMonth()+1) +"/" + date.getDate() + "/" + date.getFullYear() + " " + date.getHours() + ":" + (date.getMinutes().toString().length==1?'0':'') + date.getMinutes();
-}
-
-function getUnixNow() {
-  return Math.round((new Date().getTime())/1000);
 }
 
 function randomColor() {

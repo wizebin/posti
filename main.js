@@ -1,11 +1,15 @@
+var errorList = [];
+
 function getEvaluatedString(str) {
   var escaped = `\`${str.replace('`','\\`')}\``;
-  try {
+  // try {
     var ret = eval(escaped);
     return ret;
-  } catch (err) {
-    return str;
-  }
+  // } catch (err) {
+  //   errorList.push(err);
+  //   console.error('error in string evaluation', str, 'err');
+  //   return str;
+  // }
 }
 
 function getObjectAsHeaderArray(obj) {
@@ -15,8 +19,6 @@ function getObjectAsHeaderArray(obj) {
     return culm;
   },[]);
 }
-
-var errorList = [];
 
 var ToggleButton = function(parent, props) {
   var that = me(this);
@@ -36,7 +38,6 @@ ToggleButton.prototype.getValue = function() {
 }
 
 ToggleButton.prototype.showToggledState = function() {
-  console.log('toggled');
   if (this.toggled) {
     if (this.props.onClass) {
       this.view.className = this.props.onClass;
@@ -74,34 +75,13 @@ var Timeline = function(parent, props) {
 
   this.actButton = spawn('button', this.controlRow, { className: 'controlbutton', onclick: function() {
     that.cards.reduce(function(accumulator, card) {
-      return accumulator.then(card.act);
+      return accumulator.then(card.act).catch(function(err){});
     }, Promise.resolve(true));
   } }, 'Perform');
-
-  // this.stateText = spawn('input', this.controlView, { className: 'statetext', placeholder: 'state text' });
-
-  // this.saveButton = spawn('button', this.controlView, { className: 'controlbutton', onclick: function() {
-  //   // that.stateText.value = b64EncodeUnicode(JSON.stringify(that.cards.map(function(card){
-  //     // return card.saveState();
-  //   // })));
-  // } }, 'Save Configuration');
-
-  // this.loadButton = spawn('button', this.controlView, { className: 'controlbutton', onclick: function() {
-  //   // that.loadState(that.stateText.value);
-  // } }, 'Load Configuration');
 
   this.link = spawn('a', this.controlView, { className: 'statelink', onmouseover: function(){that.setStateLink()}, onfocus: function(){that.setStateLink()}}, 'State Link');
 
   this.addCard('CONFIG');
-}
-
-Timeline.prototype.setStateLink = function() {
-  this.link.href = '#' + b64EncodeUnicode(this.saveState());
-}
-Timeline.prototype.saveState = function() {
-  return JSON.stringify(this.cards.map(function(card){
-    return card.saveState();
-  }));
 }
 
 
@@ -112,6 +92,9 @@ var Card = function(parent, props) {
     this.canDrag = true;
   }
   this.view = spawn('div', parent, this.props);
+  this.errorView = spawn('div', this.view, { className: 'errorview', style: { display: 'none'}}, [
+    this.errorContent = spawn('div', null, { className: 'errorcontent' }),
+  ]);
 
   this.header = spawn('div', this.view, { className: 'cardheader' }, [
     this.options = spawn('select', null, { className: 'cardselect', onchange: function() {
@@ -206,8 +189,12 @@ ConfigCard.prototype.getOrderedValue = function(evaluate) {
 
 ConfigCard.prototype.act = function() {
   if (!window.config) window.config = {};
-  var result = this.evaluateAndSetConfig();
-  return Promise.resolve(result);
+  try{
+    var result = this.evaluateAndSetConfig();
+    return Promise.resolve(result);
+  } catch (err) {
+    return Promise.reject(err);
+  }
 }
 
 ConfigCard.prototype.clear = function(force) {
@@ -215,9 +202,11 @@ ConfigCard.prototype.clear = function(force) {
     this.removeConfigLine(this.configLines[a], force);
   }
 }
+
 ConfigCard.prototype.saveState = function() {
   return this.getOrderedValue(false); // don't evaluate the values
 }
+
 ConfigCard.prototype.loadState = function(state) {
   this.clear(state.length > 0);
   state.forEach(function(line){
@@ -234,17 +223,23 @@ DisplayCard = function(parent, props) {
 }
 
 DisplayCard.prototype.act = function() {
-  this.display.value = this.subject.value ? eval(this.subject.value) : JSON.stringify(window.lastResult, null, 4);
-  return Promise.resolve();
+  try {
+    this.display.value = this.subject.value ? eval(this.subject.value) : JSON.stringify(window.lastResult, null, 4);
+    return Promise.resolve();
+  } catch (err) {
+    return Promise.reject(err);
+  }
 }
 
 DisplayCard.prototype.clear = function() {
   this.subject.value = '';
   this.display.value = '';
 }
+
 DisplayCard.prototype.saveState = function() {
   return {subject: this.subject.value};
 }
+
 DisplayCard.prototype.loadState = function(state) {
   this.clear();
   this.subject.value = state.subject;
@@ -259,17 +254,23 @@ ScriptCard = function(parent, props) {
 }
 
 ScriptCard.prototype.act = function() {
-  var result = eval(this.getValue());
-  window.lastResult = result;
+  try{
+    var result = eval(this.getValue());
+    window.lastResult = result;
+  } catch (err) {
+    return Promise.reject(err);
+  }
   return Promise.resolve(result);
 }
 
 ScriptCard.prototype.getValue = function() {
   return this.text.value;
 }
+
 ScriptCard.prototype.saveState = function() {
   return {script: this.text.value};
 }
+
 ScriptCard.prototype.loadState = function(state) {
   this.text.value = (state && state.script) || '';
 }
@@ -319,9 +320,11 @@ RequestCard.prototype.getParameters = function() {
     // 'password': this.password,
   };
 }
+
 RequestCard.prototype.request = function() {
   return httpVERB('request/', 'POST', JSON.stringify(this.getParameters()), null);
 }
+
 RequestCard.prototype.act = function() {
   var that = this;
   return new Promise(function(resolve, reject) {
@@ -341,9 +344,11 @@ RequestCard.prototype.act = function() {
     });
   });
 }
+
 RequestCard.prototype.saveState = function() {
   return {verb: this.verb.value, url: this.url.value, mime: this.mime.value, headers: this.headers.saveState(), bodyType: this.bodyType, body: this.bodyCard && this.bodyCard.saveState()};
 }
+
 RequestCard.prototype.loadState = function(state) {
   if (!state) state = {};
   this.verb.value = state.verb || '';
@@ -353,6 +358,7 @@ RequestCard.prototype.loadState = function(state) {
   this.setBodyType(state.bodyType || this.mime.value);
   this.bodyCard.loadState(state.body || {});
 }
+
 RequestCard.prototype.setBodyType = function(type) {
   if (this.bodyCard) {
     if (this.bodyType == type) return;
@@ -470,9 +476,20 @@ Timeline.prototype.loadState = function(stateString) {
   }
 }
 
+Timeline.prototype.setStateLink = function() {
+  this.link.href = '#' + b64EncodeUnicode(this.saveState());
+}
+
+Timeline.prototype.saveState = function() {
+  return JSON.stringify(this.cards.map(function(card){
+    return card.saveState();
+  }));
+}
+
 Card.prototype.lockDrag = function() {
   this.view.draggable = false;
 }
+
 Card.prototype.unlockDrag = function() {
   if (this.canDrag) {
     this.view.draggable = true;
@@ -506,13 +523,23 @@ Card.prototype.showContent = function(contentType) {
 
   }
 }
+
 Card.prototype.indicateActing = function() {
   this.view.className='activecardview';
+  this.errorView.style.display = 'none';
 }
+
 Card.prototype.indicateFinishActing = function() {
   this.view.className='cardview';
-
 }
+
+Card.prototype.indicateError = function(error) {
+  this.view.className='carderror';
+  this.errorView.style.display = 'block';
+  this.errorContent.innerHTML = makereadable(error.stack);
+  errorList.push(error);
+}
+
 Card.prototype.act = function() {
   this.indicateActing();
   var that = this;
@@ -522,6 +549,9 @@ Card.prototype.act = function() {
     prom.then(function(data){
       that.indicateFinishActing();
       resolve(data);
+    }).catch(function(data){
+      that.indicateError(data);
+      reject(data);
     });
   });
   return ret;
@@ -530,6 +560,7 @@ Card.prototype.act = function() {
 Card.prototype.saveState = function() {
   return {contentType: this.contentType, content: this.innerView && this.innerView.saveState(), enabled: this.toggle.getValue()};
 }
+
 Card.prototype.loadState = function(state) {
   this.options.value=state.contentType;
   this.showContent(state.contentType);
@@ -546,10 +577,6 @@ if (hashLocation.length > 1) {
   var result = b64DecodeUnicode(hashLocation[1]);
   currentConfig=result;
 }
-
-
-
-
 
 var timelineWrapper = spawn('div', document.getElementById('main'), { style: { display: 'flex' }});
 var timeline = new Timeline(timelineWrapper);
