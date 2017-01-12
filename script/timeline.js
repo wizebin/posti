@@ -115,8 +115,17 @@ Timeline.prototype.saveState = function() {
   }));
 }
 
+Timeline.prototype.flow = function(promiseList, step) {
+  if (step >= promiseList.length) return undefined;
+  var that = this;
+  promiseList[step]().then(function(data){
+    var nextStep = step+1;
+    that.flow(promiseList, nextStep);
+  }).catch(function(data){
+    console.log('chain stopped at', step, data);
+  });
+}
+
 Timeline.prototype.act = function() {
-  this.cards.reduce(function(accumulator, card) {
-    return accumulator.then(card.act).catch(function(err){});
-  }, Promise.resolve(true));
+  this.flow(this.cards.map(function(card){return card.act}), 0);
 }
