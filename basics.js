@@ -24,6 +24,12 @@ function getObjectKeys(obj) {
   return ret;
 }
 
+function getEvaluatedString(str) {
+  var escaped = `\`${str.replace('`','\\`')}\``;
+    var ret = eval(escaped);
+    return ret;
+}
+
 function arrayMove(array, from, to) {
     array.splice(to, 0, array.splice(from, 1)[0]);
 }
