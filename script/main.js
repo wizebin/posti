@@ -25,6 +25,6 @@ if (hashLocation.length > 1) {
 }
 
 var timelineWrapper = spawn('div', document.getElementById('main'), { style: { display: 'flex', height: '100%' }});
-var timeline = new Timeline(timelineWrapper);
+var timeline = new FreeTimeline(timelineWrapper);
 
 if (currentConfig) timeline.loadState(currentConfig);

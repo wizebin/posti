@@ -30,8 +30,9 @@ var Card = function(parent, props) {
         spawn('option', null, null, 'CONFIG'),
         spawn('option', null, null, 'DISPLAY'),
       ]),
-      this.title = spawn('input', null, { className: 'cardtitle', placeholder: 'title', onmousedown: function(){that.lockDrag()}, onmouseup: function(){that.unlockDrag()} }),
+      this.title = spawn('input', null, { className: 'cardtitle', placeholder: 'title', onmousedown: function(){that.lockDrag()}, onmouseup: function(){that.unlockDrag()} }, that.props.title),
       this.toggle = new ToggleButton(null, { toggled: true, onClass: 'toggleon', offClass: 'toggleoff' }),
+      this.ordinal = spawn('span', null, { className: 'cardordinal' }, that.props.ordinal),
     ]),
     spawn('div', null, { className: 'carddisplaydiv' }, [
       this.minimize = spawn('button', null, { className: 'cardminimize', onclick: function() {
@@ -63,6 +64,10 @@ Card.prototype.unlockDrag = function() {
   if (this.canDrag) {
     this.view.draggable = true;
   }
+}
+
+Card.prototype.setOrdinal = function(ordinal) {
+  this.ordinal.innerHTML = ordinal;
 }
 
 var headerColors = {

@@ -77,6 +77,7 @@ function spawn(element, parent, props, children) {
         el.appendChild(tempchild);
       }, this);
     } else if (isString(children)) {
+      el.value=children;
       el.innerHTML=children;
     } else if (isObject(children)){
       var keys = getObjectKeys(children);

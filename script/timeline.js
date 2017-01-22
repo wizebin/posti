@@ -32,9 +32,13 @@ Timeline.prototype.closeCard = function(card, force) {
       this.cards.splice(position, 1);
     }
   }
-  if (this.cards.length === 0 && !force) {
-    this.addCard('CONFIG');
+  if (this.cards.length === 0) {
+    this.cardCounter = 0;
+    if (!force) {
+      this.addCard('CONFIG');
+    }
   }
+  this.setOrdinality();
 }
 
 Timeline.prototype.startingDrag = function(card, event) {
@@ -61,6 +65,7 @@ Timeline.prototype.dropped = function(card, event) {
       }
       arrayMove(this.cards, cardPosition, dropPosition);
     }
+    this.setOrdinality();
   }
 }
 
@@ -83,6 +88,7 @@ Timeline.prototype.addCard = function(initialCard) {
     that.stoppedDrag(nextCard, ev);
   } });
   this.cards.push(nextCard);
+  this.setOrdinality();
   return nextCard;
 }
 
@@ -123,6 +129,12 @@ Timeline.prototype.flow = function(promiseList, step) {
     that.flow(promiseList, nextStep);
   }).catch(function(data){
     console.log('chain stopped at', step, data);
+  });
+}
+
+Timeline.prototype.setOrdinality = function() {
+  this.cards.forEach(function(card, ord) {
+    card.setOrdinal(ord+1);
   });
 }
 

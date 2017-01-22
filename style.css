@@ -149,6 +149,11 @@ textarea{
   justify-content: space-between;
   /*border: 1px solid #aaa;*/
 }
+.cardordinal {
+  display: inline-flex;
+  padding: 0px 5px;
+  align-items: center;
+}
 .cardselect, .requestverb, .requestmime {
   background: transparent;
   color: inherit;
