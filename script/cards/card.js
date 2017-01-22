@@ -15,7 +15,7 @@ var Card = function(parent, props) {
     var viewOffset = getOffsetRect(that.view);
     that.clickOff = { x: that.clickPos.x - viewOffset.x, y: that.clickPos.y - viewOffset.y };
   } }, props);
-  if (this.props.draggable) {
+  if (this.props._draggable) {
     this.canDrag = true;
   }
   this.view = spawn('div', parent, this.props);

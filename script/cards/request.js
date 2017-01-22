@@ -88,18 +88,19 @@ RequestCard.prototype.act = function() {
   var that = this;
   return new Promise(function(resolve, reject) {
     that.request().then(function(data) {
-      if (that.mime.value==='Json') {
-        try{
-          var parsed = JSON.parse(data);
-          window.lastResult = parsed;
-          resolve(parsed);
-          return;
-        } catch (err) {
+      try{
+        var parsed = JSON.parse(data);
+        window.lastResult = parsed;
+        resolve(parsed);
+        return;
+      } catch (err) {
+        if (that.mime.value==='Json') {
           reject(err);
+        } else {
+          window.lastResult = data;
+          resolve(parsed);
         }
       }
-      window.lastResult = data;
-      resolve(parsed);
     }).catch(function(data) {
       reject(new Error(`(HTTP: ${data.status}): ${data.responseText}`));
     });

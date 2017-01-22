@@ -2,7 +2,7 @@ DisplayCard = function(parent, props) {
   var that = me(this);
   this.props = props || {};
   this.view = spawn('div', parent, { className: 'displayview' });
-  this.subject = spawn('input', this.view, { className: 'displayinput', placeholder: 'toDisplay (defaults to last results)', onmousedown: function(){that.props.lockDrag&&that.props.lockDrag()}, onmouseup: function(){that.props.unlockDrag&&that.props.unlockDrag()}});
+  this.subject = spawn('input', this.view, { className: 'displayinput', placeholder: 'To Display (defaults to lastResult)', onmousedown: function(){that.props.lockDrag&&that.props.lockDrag()}, onmouseup: function(){that.props.unlockDrag&&that.props.unlockDrag()}});
   this.display = spawn('textarea', this.view, { className: 'displayoutput', onmousedown: function(){that.props.lockDrag&&that.props.lockDrag()}, onmouseup: function(){that.props.unlockDrag&&that.props.unlockDrag()} });
 }
 
@@ -12,7 +12,11 @@ DisplayCard.prototype.act = function() {
     if (!isString(result)) {
       this.display.value = JSON.stringify(result, null, 4);
     } else {
-      this.display.value = result;
+      try {
+        this.display.value = JSON.stringify(JSON.parse(result), null, 4);
+      } catch (err) {
+        this.display.value = result;
+      }
     }
     return Promise.resolve();
   } catch (err) {
