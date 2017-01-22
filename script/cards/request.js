@@ -77,7 +77,7 @@ RequestCard.prototype.getEvaluatedParams = function() {
 }
 
 RequestCard.prototype.request = function() {
-  if (config && config.crossOrigin) {
+  if (window.config && config.crossOrigin) {
     return httpVERB(this.getEvaluatedUrl(), this.getEvaluatedVerb(), this.getEvaluatedParams(), this.getEvaluatedHeaders());
   } else {
     return httpVERB('request/', 'POST', JSON.stringify(this.getParameters()), null);
