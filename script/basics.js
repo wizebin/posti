@@ -26,8 +26,8 @@ function getObjectKeys(obj) {
 
 function getEvaluatedString(str) {
   var escaped = `\`${str.replace('`','\\`')}\``;
-    var ret = eval(escaped);
-    return ret;
+  var ret = eval(escaped);
+  return ret;
 }
 
 function arrayMove(array, from, to) {
@@ -285,7 +285,7 @@ function getOffsetRect(elem) {
   var top  = box.top +  scrollTop - clientTop
   var left = box.left + scrollLeft - clientLeft
 
-  return { x: Math.round(left), y: Math.round(top) }
+  return { x: Math.round(left), y: Math.round(top), w: box.right - box.left, h: box.bottom - box.top }
 }
 
 function getPageWidth() {

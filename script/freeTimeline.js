@@ -53,7 +53,7 @@ FreeTimeline.prototype.timelineDraggedOver = function(event) {
   this.dragging.view.style.top = `${offsetY}px`;
   this.dragging.view.style.left = `${offsetX}px`;
   this.dragging.view.style.margin = '0px 0px';
-  this.dragging.view.style.resize = 'both';
+  // this.dragging.view.style.resize = 'both';
 }
 FreeTimeline.prototype.droppedOnTimeline = function(event) {
   console.log('dropped on timeline', this.dragging, event, this.draggingMouseOffset);
@@ -99,14 +99,14 @@ FreeTimeline.prototype.cardStoppedDrag = function(card, event) {
 
 FreeTimeline.prototype.addCard = function(initialCard) {
   var that = this;
-  var nextCard = new Card(this.cardView, { id: `CARD_${this.cardCounter++}`, onClose: that.closeCard, initialCard, draggable: true, ondragstart: function(ev){
+  var nextCard = new Card(this.cardView, { id: `CARD_${this.cardCounter++}`, onClose: that.closeCard, initialCard, _draggable: true, _ondragstart: function(ev){
     that.cardStartingDrag(nextCard, ev);
-  }, ondrop: function(ev){
+  }, _ondrop: function(ev){
     that.droppedOnCard(nextCard, ev);
-  }, ondragover: function(ev){
+  }, _ondragover: function(ev){
     ev.preventDefault();
     that.cardDraggedOver(nextCard, ev);
-  }, ondragend: function(ev){
+  }, _ondragend: function(ev){
     that.cardStoppedDrag(nextCard, ev);
   }, style: { position: 'absolute', top: '10px', left: '10px' } } );
   this.cards.push(nextCard);

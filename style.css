@@ -51,6 +51,7 @@ textarea{
   display: flex;
   flex-wrap: wrap;
   flex: 1;
+  overflow: auto;
 }
 .cardwrapper {
   display: flex;
@@ -105,8 +106,8 @@ textarea{
 .scripttext, .displayoutput {
   width: 100%;
   height: 100%;
-  resize: vertical;
-  min-height: 200px;
+  resize: none;
+  min-height: 100px;
   padding: 5px;
   flex: 1;
 }
@@ -178,6 +179,8 @@ textarea{
   flex: 1;
   display: flex;
   flex-direction: column;
+  resize: both;
+  overflow: auto;
   /*border-right: 1px solid #aaa;
   border-bottom: 1px solid #aaa;
   border-left: 1px solid #aaa;*/
@@ -339,7 +342,7 @@ textarea{
   margin-top: 5px;
   margin-bottom: 10px;
   display: flex;
-  height: 30px;
+  flex: 0 0 30px;
   justify-content: flex-end;
 }
 .scriptview {

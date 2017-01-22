@@ -20,7 +20,7 @@ var Card = function(parent, props) {
   }
   this.view = spawn('div', parent, this.props);
 
-  this.header = spawn('div', this.view, { className: 'cardheader' }, [
+  this.header = spawn('div', this.view, { className: 'cardheader', draggable: props._draggable, ondragstart: props._ondragstart, ondragend: props._ondragend, ondrop: props._ondrop }, [
     spawn('div', null, { className: 'cardconfigdiv' }, [
       this.options = spawn('select', null, { className: 'cardselect', onchange: function() {
         that.showContent(this.value);
@@ -57,12 +57,12 @@ Card.prototype.minimize = function() {
 
 }
 Card.prototype.lockDrag = function() {
-  this.view.draggable = false;
+  this.header.draggable = false;
 }
 
 Card.prototype.unlockDrag = function() {
   if (this.canDrag) {
-    this.view.draggable = true;
+    this.header.draggable = true;
   }
 }
 
