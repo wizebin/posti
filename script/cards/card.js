@@ -1,12 +1,3 @@
-function findPositionRelative(descendant, ancestor) {
-  var offsetDesc = getOffsetRect(descendant);
-  var offsetPar = getOffsetRect(ancestor);
-  return {
-    x: offsetDesc.x - offsetPar.x,
-    y: offsetDesc.y - offsetPar.y
-  };
-}
-
 var Card = function(parent, props) {
   var that = me(this);
   this.props = objectAssign({ className: 'cardview', onmousedown: function(ev){
@@ -20,7 +11,7 @@ var Card = function(parent, props) {
   }
   this.view = spawn('div', parent, this.props);
 
-  this.header = spawn('div', this.view, { className: 'cardheader', draggable: props._draggable, ondragstart: props._ondragstart, ondragend: props._ondragend, ondrop: props._ondrop }, [
+  this.header = spawn('div', this.view, { className: 'cardheader', style: props._style, draggable: props._draggable, ondragstart: props._ondragstart, ondragend: props._ondragend, ondrop: props._ondrop }, [
     spawn('div', null, { className: 'cardconfigdiv' }, [
       this.options = spawn('select', null, { className: 'cardselect', onchange: function() {
         that.showContent(this.value);
@@ -36,7 +27,7 @@ var Card = function(parent, props) {
     ]),
     spawn('div', null, { className: 'carddisplaydiv' }, [
       this.minimize = spawn('button', null, { className: 'cardminimize', onclick: function() {
-        that.minimize();
+        that.onMinimize();
       } }, '-'),
       this.closer = spawn('button', null, { className: 'cardclose', onclick: function() {
         that.props.onClose && that.props.onClose(that);
@@ -53,8 +44,15 @@ var Card = function(parent, props) {
   this.options.onchange();
   window.addEventListener ("mouseup", function () {that.unlockDrag()}, false);
 }
-Card.prototype.minimize = function() {
-
+Card.prototype.onMinimize = function() {
+  if (this.content.style.height === '0px') {
+    this.content.style.height = 'initial';
+    this.minimize.innerHTML = '-';
+  } else {
+    this.content.style.height = '0px';
+    this.content.style.width = '100%';
+    this.minimize.innerHTML = '+';
+  }
 }
 Card.prototype.lockDrag = function() {
   this.header.draggable = false;

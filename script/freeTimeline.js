@@ -46,9 +46,10 @@ FreeTimeline.prototype.closeCard = function(card, force) {
 FreeTimeline.prototype.timelineDraggedOver = function(event) {
   event.preventDefault();
   var wrapperOffset = getOffsetRect(this.cardView);
+  var wrapperScroll = getElementScroll(this.cardView);
 
-  var offsetX = getMousePos().x - wrapperOffset.x - this.dragging.clickOff.x;//this.draggingMouseOffset.x - this.cardView.getBoundingClientRect().left;
-  var offsetY = getMousePos().y - wrapperOffset.y - this.dragging.clickOff.y;//this.draggingMouseOffset.y - this.cardView.getBoundingClientRect().top;
+  var offsetX = getMousePos().x - wrapperOffset.x - this.dragging.clickOff.x + wrapperScroll.x;//this.draggingMouseOffset.x - this.cardView.getBoundingClientRect().left;
+  var offsetY = getMousePos().y - wrapperOffset.y - this.dragging.clickOff.y + wrapperScroll.y;//this.draggingMouseOffset.y - this.cardView.getBoundingClientRect().top;
   this.dragging.view.style.position = 'absolute';
   this.dragging.view.style.top = `${offsetY}px`;
   this.dragging.view.style.left = `${offsetX}px`;
@@ -99,6 +100,11 @@ FreeTimeline.prototype.cardStoppedDrag = function(card, event) {
 
 FreeTimeline.prototype.addCard = function(initialCard) {
   var that = this;
+  var off = getOffsetRect(this.cardView);
+  var prevOff = this.cards.length > 0 ? getOffsetRect(this.cards[this.cards.length-1].view) : { x: off.x, y: off.y, w: 0, h: 0};
+  var nextTop = prevOff.y - off.y + prevOff.h + 10;
+  var nextLeft = prevOff.x;
+
   var nextCard = new Card(this.cardView, { id: `CARD_${this.cardCounter++}`, onClose: that.closeCard, initialCard, _draggable: true, _ondragstart: function(ev){
     that.cardStartingDrag(nextCard, ev);
   }, _ondrop: function(ev){
@@ -108,7 +114,8 @@ FreeTimeline.prototype.addCard = function(initialCard) {
     that.cardDraggedOver(nextCard, ev);
   }, _ondragend: function(ev){
     that.cardStoppedDrag(nextCard, ev);
-  }, style: { position: 'absolute', top: '10px', left: '10px' } } );
+  }, _style: { cursor: 'move' },
+  style: { position: 'absolute', top: `${nextTop}px`, left: `${nextLeft}px` } } );
   this.cards.push(nextCard);
   this.setOrdinality();
   return nextCard;

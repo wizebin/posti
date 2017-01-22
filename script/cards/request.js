@@ -102,7 +102,10 @@ RequestCard.prototype.act = function() {
         }
       }
     }).catch(function(data) {
-      reject(new Error(`(HTTP: ${data.status}): ${data.responseText}`));
+      if (data && 'status' in data)
+        reject(new Error(`(HTTP: ${data.status}): ${data.responseText}`));
+      else
+        reject(data);
     });
   });
 }

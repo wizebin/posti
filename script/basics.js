@@ -54,6 +54,7 @@ function spawn(element, parent, props, children) {
     keys.forEach(function(key) {
       if (isObject(props[key])) {
         var subKeys = getObjectKeys(props[key]);
+        if (!el[key]) el[key] = {};
         subKeys.forEach(function(innerKey) {
           el[key][innerKey] = props[key][innerKey];
         });
@@ -155,28 +156,37 @@ function removeAllChildren(element) {
 
 const httpVERB = (url, verb, params, headers) => {
   return new Promise((resolve, reject) => {
-    const xhr = typeof XMLHttpRequest !== 'undefined'
-    ? new XMLHttpRequest()
-    : new window.ActiveXObject('Microsoft.XMLHTTP');
-    xhr.open(verb, url, true);
+    try {
+      const xhr = typeof XMLHttpRequest !== 'undefined'
+      ? new XMLHttpRequest()
+      : new window.ActiveXObject('Microsoft.XMLHTTP');
+      xhr.onerror = (err) => {reject(err);};
+      xhr.open(verb, url, true);
 
-    headers && Object.keys(headers).forEach(key => xhr.setRequestHeader(key, headers[key]));
+      headers && Object.keys(headers).forEach(key => xhr.setRequestHeader(key, headers[key]));
 
-    xhr.onreadystatechange = () => {
-      if (xhr.readyState === 4) {
-        const status = xhr.status;
-        if (status === 200) {
-          try {
-            resolve(xhr.responseText);
-          } catch (err) {
-            reject(err.message + xhr.responseText);
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4) {
+          const status = xhr.status;
+          if (status === 200) {
+            try {
+              resolve(xhr.responseText);
+            } catch (err) {
+              reject(err.message + xhr.responseText);
+            }
+          } else {
+            if (xhr.status === 0) {
+              reject(new Error('Request error, check your console, possibly a url misconfiguration (did you forget http?)- you tried to access ' + url + ' ' + verb));
+            } else {
+              reject(xhr);
+            }
           }
-        } else {
-          reject(xhr);
         }
-      }
-    };
-    xhr.send(params);
+      };
+      xhr.send(params);
+    } catch (err) {
+      reject(err);
+    }
   });
 };
 
@@ -272,6 +282,10 @@ function getScrollPos() {
     return document.body.scrollTop;
   }
   return 0;
+}
+
+function getElementScroll(elem) {
+  return { x: elem.pageXOffset || elem.scrollLeft, y: elem.pageYOffset || elem.scrollTop };
 }
 
 function getOffsetRect(elem) {
