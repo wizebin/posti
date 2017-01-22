@@ -5,6 +5,7 @@ var Card = function(parent, props) {
     that.clickPos = { x: targetOffset.x + ev.layerX, y: targetOffset.y + ev.layerY};
     var viewOffset = getOffsetRect(that.view);
     that.clickOff = { x: that.clickPos.x - viewOffset.x, y: that.clickPos.y - viewOffset.y };
+    that.startPosition = { top: that.view.style.top, left: that.view.style.left };
   } }, props);
   if (this.props._draggable) {
     this.canDrag = true;
@@ -42,8 +43,13 @@ var Card = function(parent, props) {
   this.content = spawn('div', this.view, { className: 'cardcontent', style: { padding: '10px' } });
   if (this.props.initialCard) this.options.value = this.props.initialCard;
   this.options.onchange();
+
+  this.footer = spawn('div', this.view, { className: 'cardfooter' }, [
+    this.orderer = spawn('div', null, { className: 'cardorderer', draggable: true, ondragstart: this.props._ondragorderstart, ondragend: this.props._ondragend }),
+  ]);
   window.addEventListener ("mouseup", function () {that.unlockDrag()}, false);
 }
+
 Card.prototype.onMinimize = function() {
   if (this.content.style.height === '0px') {
     this.content.style.height = 'initial';
@@ -54,6 +60,7 @@ Card.prototype.onMinimize = function() {
     this.minimize.innerHTML = '+';
   }
 }
+
 Card.prototype.lockDrag = function() {
   this.header.draggable = false;
 }

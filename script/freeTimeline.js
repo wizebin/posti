@@ -44,50 +44,65 @@ FreeTimeline.prototype.closeCard = function(card, force) {
 }
 
 FreeTimeline.prototype.timelineDraggedOver = function(event) {
-  event.preventDefault();
-  var wrapperOffset = getOffsetRect(this.cardView);
-  var wrapperScroll = getElementScroll(this.cardView);
+  if (!this.ordering) {
+    event.preventDefault();
+    if (this.dragging && this.dragging.constructor.name === 'Card'){
+      var wrapperOffset = getOffsetRect(this.cardView);
+      var wrapperScroll = getElementScroll(this.cardView);
 
-  var offsetX = getMousePos().x - wrapperOffset.x - this.dragging.clickOff.x + wrapperScroll.x;//this.draggingMouseOffset.x - this.cardView.getBoundingClientRect().left;
-  var offsetY = getMousePos().y - wrapperOffset.y - this.dragging.clickOff.y + wrapperScroll.y;//this.draggingMouseOffset.y - this.cardView.getBoundingClientRect().top;
-  this.dragging.view.style.position = 'absolute';
-  this.dragging.view.style.top = `${offsetY}px`;
-  this.dragging.view.style.left = `${offsetX}px`;
-  this.dragging.view.style.margin = '0px 0px';
-  // this.dragging.view.style.resize = 'both';
+      var offsetX = getMousePos().x - wrapperOffset.x - this.dragging.clickOff.x + wrapperScroll.x;//this.draggingMouseOffset.x - this.cardView.getBoundingClientRect().left;
+      var offsetY = getMousePos().y - wrapperOffset.y - this.dragging.clickOff.y + wrapperScroll.y;//this.draggingMouseOffset.y - this.cardView.getBoundingClientRect().top;
+      this.dragging.view.style.position = 'absolute';
+      this.dragging.view.style.top = `${offsetY}px`;
+      this.dragging.view.style.left = `${offsetX}px`;
+      this.dragging.view.style.margin = '0px 0px';
+    }
+  }
 }
 FreeTimeline.prototype.droppedOnTimeline = function(event) {
+
   console.log('dropped on timeline', this.dragging, event, this.draggingMouseOffset);
 
 }
 
 FreeTimeline.prototype.cardStartingDrag = function(card, event) {
-  // event.dataTransfer.setDragImage(null);
   this.dragging = card;
+  this.ordering = false;
+}
+
+FreeTimeline.prototype.orderStartingDrag = function(card, event) {
+  this.dragging = card;
+  this.ordering = true;
 }
 
 FreeTimeline.prototype.cardDraggedOver = function(card, event) {
-  this.cards.forEach(function(icard){
-    icard.view.className = (icard === card && icard != this.dragging) ? 'dropcardview' : 'cardview';
-  }, this);
+  if (this.ordering) {
+    this.cards.forEach(function(icard){
+      icard.view.className = (icard === card && icard != this.dragging) ? 'dropcardview' : 'cardview';
+    }, this);
+  }
 }
 
 FreeTimeline.prototype.droppedOnCard = function(card, event) {
-  if (this.dragging && this.drqagging != card) {
-    event.stopPropagation();
-    var cardPosition = this.cards.indexOf(this.dragging);
-    var dropPosition = this.cards.indexOf(card);
+  if (this.dragging && this.dragging != card) {
+    if (!this.ordering) {
 
-    if (dropPosition > -1) {
-      if (dropPosition > cardPosition) {
-        this.dragging.view.parentElement.insertBefore(this.dragging.view, card.view.nextSibling);
+    } else {
+      event.stopPropagation();
+      var cardPosition = this.cards.indexOf(this.dragging);
+      var dropPosition = this.cards.indexOf(card);
+
+      if (dropPosition > -1) {
+        if (dropPosition > cardPosition) {
+          this.dragging.view.parentElement.insertBefore(this.dragging.view, card.view.nextSibling);
+        }
+        else {
+          this.dragging.view.parentElement.insertBefore(this.dragging.view, card.view);
+        }
+        arrayMove(this.cards, cardPosition, dropPosition);
       }
-      else {
-        this.dragging.view.parentElement.insertBefore(this.dragging.view, card.view);
-      }
-      arrayMove(this.cards, cardPosition, dropPosition);
+      this.setOrdinality();
     }
-    this.setOrdinality();
   }
 }
 
@@ -96,6 +111,8 @@ FreeTimeline.prototype.cardStoppedDrag = function(card, event) {
     card.view.className = 'cardview';
   });
   var that = this;
+  this.ordering = false;
+  this.dragging = null;
 }
 
 FreeTimeline.prototype.addCard = function(initialCard) {
@@ -105,14 +122,17 @@ FreeTimeline.prototype.addCard = function(initialCard) {
   var nextTop = prevOff.y - off.y + prevOff.h + 10;
   var nextLeft = prevOff.x;
 
-  var nextCard = new Card(this.cardView, { id: `CARD_${this.cardCounter++}`, onClose: that.closeCard, initialCard, _draggable: true, _ondragstart: function(ev){
+  var nextCard = new Card(this.cardView, { id: `CARD_${this.cardCounter++}`, onClose: that.closeCard, initialCard, _draggable: true,
+  _ondragstart: function(ev) {
     that.cardStartingDrag(nextCard, ev);
-  }, _ondrop: function(ev){
+  }, _ondragorderstart: function(ev) {
+    that.orderStartingDrag(nextCard, ev);
+  }, ondrop: function(ev) {
     that.droppedOnCard(nextCard, ev);
-  }, _ondragover: function(ev){
+  }, ondragover: function(ev) {
     ev.preventDefault();
     that.cardDraggedOver(nextCard, ev);
-  }, _ondragend: function(ev){
+  }, _ondragend: function(ev) {
     that.cardStoppedDrag(nextCard, ev);
   }, _style: { cursor: 'move' },
   style: { position: 'absolute', top: `${nextTop}px`, left: `${nextLeft}px` } } );
