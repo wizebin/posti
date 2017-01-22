@@ -95,6 +95,26 @@ function spawn(element, parent, props, children) {
   return el;
 }
 
+function getChildren(element) {
+  if (isElement(element)) {
+    return [].slice.call(element.children);
+  } else if (isElement(element.view)) {
+    return [].slice.call(element.view.children);
+  }
+  return [];
+}
+
+function getRecursiveChildren(element, depth) {
+  if (depth === undefined) depth = 0;
+  if (depth > 10) return [];
+  var kids = getChildren(element);
+  var ret = kids;
+  kids.forEach(function(child){
+    ret = ret.concat(getRecursiveChildren(child, depth++));
+  });
+  return ret;
+}
+
 var thatWrapper = function(instance) {
   var that = this;
   if (this!=instance)
@@ -300,6 +320,16 @@ function getOffsetRect(elem) {
   var left = box.left + scrollLeft - clientLeft
 
   return { x: Math.round(left), y: Math.round(top), w: box.right - box.left, h: box.bottom - box.top }
+}
+
+function getPositionInParent(elem) {
+  if (elem && elem.parentElement) {
+    var elemOff = getOffsetRect(elem);
+    var parOff = getOffsetRect(elem.parentElement);
+    var parScroll = getElementScroll(elem.parentElement);
+    return { x: elemOff.x - parOff.x + parScroll.x, y: elemOff.y - parOff.y + parScroll.y, w: elemOff.w, h: elemOff.h };
+  }
+  return undefined;
 }
 
 function getPageWidth() {

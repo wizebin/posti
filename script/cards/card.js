@@ -6,6 +6,8 @@ var Card = function(parent, props) {
     var viewOffset = getOffsetRect(that.view);
     that.clickOff = { x: that.clickPos.x - viewOffset.x, y: that.clickPos.y - viewOffset.y };
     that.startPosition = { top: that.view.style.top, left: that.view.style.left };
+  }, onmouseup: function(ev){
+    that.onChildChangedCreator(this)(ev);
   } }, props);
   if (this.props._draggable) {
     this.canDrag = true;
@@ -23,7 +25,7 @@ var Card = function(parent, props) {
         spawn('option', null, null, 'DISPLAY'),
       ]),
       this.title = spawn('input', null, { className: 'cardtitle', placeholder: 'title', onmousedown: function(){that.lockDrag()}, onmouseup: function(){that.unlockDrag()} }, that.props.title),
-      this.toggle = new ToggleButton(null, { toggled: true, onClass: 'toggleon', offClass: 'toggleoff' }),
+      this.toggle = new ToggleButton(null, { toggled: true, onClass: 'toggleon', offClass: 'toggleoff', onclick: that.onChildChangedCreator(that.toggle) }),
       this.ordinal = spawn('span', null, { className: 'cardordinal' }, that.props.ordinal),
     ]),
     spawn('div', null, { className: 'carddisplaydiv' }, [
@@ -48,6 +50,34 @@ var Card = function(parent, props) {
     this.orderer = spawn('div', null, { className: 'cardorderer', draggable: true, ondragstart: this.props._ondragorderstart, ondragend: this.props._ondragend }),
   ]);
   window.addEventListener ("mouseup", function () {that.unlockDrag()}, false);
+
+  const kiddos = getRecursiveChildren(this);
+  const callBacks = ['onchange', 'onclick']
+  kiddos.forEach(function(kid) {
+    callBacks.forEach(function(callback){
+      if (kid.hasOwnProperty(callback)) {
+        if (kid[callback] === undefined) {
+          kid[callback] = that.onChildChangedCreator(kid);
+        } else {
+          var oldCallback = kid[callback];
+          kid[callback] = function(event){that.onChildChangedCreator(kid)(event); oldCallback(event)};
+        }
+      }
+    });
+  });
+}
+
+Card.prototype.onChildChangedCreator = function(element) {
+  var that = this;
+  return function(event) {
+    if (that.props.onAction) {
+      that.props.onAction(that, { element, event });
+    }
+  }
+}
+
+Card.prototype.isEnabled = function() {
+  return this.toggle.value;
 }
 
 Card.prototype.onMinimize = function() {

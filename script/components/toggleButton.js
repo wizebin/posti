@@ -2,21 +2,21 @@ var ToggleButton = function(parent, props) {
   var that = me(this);
   this.props = props || {};
   this.view = spawn('div', parent, { className: 'toggleView', onclick: that.onClick });
-  this.toggled = this.props.toggled || true;
+  this.value = this.props.toggled || true;
   this.showToggledState();
 }
 
 ToggleButton.prototype.setToggleState = function(toggled) {
-  this.toggled = toggled;
+  this.value = toggled;
   this.showToggledState();
 }
 
 ToggleButton.prototype.getValue = function() {
-  return this.toggled;
+  return this.value;
 }
 
 ToggleButton.prototype.showToggledState = function() {
-  if (this.toggled) {
+  if (this.value) {
     if (this.props.onClass) {
       this.view.className = this.props.onClass;
       this.view.innerHTML = '&#10003;';
@@ -31,5 +31,5 @@ ToggleButton.prototype.showToggledState = function() {
 
 ToggleButton.prototype.onClick = function() {
   this.setToggleState(!this.getValue());
-  this.props.onclick && this.props.onclick(this.toggled);
+  this.props.onclick && this.props.onclick(this.value);
 }
