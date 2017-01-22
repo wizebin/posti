@@ -39,29 +39,49 @@ function getObjectAsHeaderArray(obj) {
   },[]);
 }
 
-
 RequestCard.prototype.getParameters = function() {
 
-  var headers = this.headers.getValue(true);
-  if (!headers['Content-Type']) {
-    if (this.mime.value === 'Form') headers['Content-Type'] = 'application/x-www-form-urlencoded';
-    else if (this.mime.value === 'Json') headers['Content-Type'] = 'application/json';
-    else if (this.mime.value === 'Xml') headers['Content-Type'] = 'application/xml';
-  }
+  var headers = this.getEvaluatedHeaders();
 
   return {
-    'url': getEvaluatedString(this.url.value),
-    'verb': this.verb.value || 'GET',
+    'url': this.getEvaluatedUrl(),
+    'verb': this.getEvaluatedVerb(),
     'headers': getObjectAsHeaderArray(headers),
-    'parameters': this.bodyType === 'Form' ? encodeURIObject(this.bodyCard.getValue(true)) : getEvaluatedString(this.bodyCard.getValue()),
+    'parameters': this.getEvaluatedParams(),
     'mime': this.mime.value,
     // 'username': this.username,
     // 'password': this.password,
   };
 }
 
+RequestCard.prototype.getEvaluatedUrl = function() {
+  return getEvaluatedString(this.url.value);
+}
+
+RequestCard.prototype.getEvaluatedVerb = function() {
+  return getEvaluatedString(this.verb.value) || 'GET';
+}
+
+RequestCard.prototype.getEvaluatedHeaders = function() {
+  var headers = this.headers.getValue(true);
+  if (!headers['Content-Type']) {
+    if (this.mime.value === 'Form') headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    else if (this.mime.value === 'Json') headers['Content-Type'] = 'application/json';
+    else if (this.mime.value === 'Xml') headers['Content-Type'] = 'application/xml';
+  }
+  return headers;
+}
+
+RequestCard.prototype.getEvaluatedParams = function() {
+  return this.bodyType === 'Form' ? encodeURIObject(this.bodyCard.getValue(true)) : getEvaluatedString(this.bodyCard.getValue());
+}
+
 RequestCard.prototype.request = function() {
-  return httpVERB('request/', 'POST', JSON.stringify(this.getParameters()), null);
+  if (config && config.crossOrigin) {
+    return httpVERB(this.getEvaluatedUrl(), this.getEvaluatedVerb(), this.getEvaluatedParams(), this.getEvaluatedHeaders());
+  } else {
+    return httpVERB('request/', 'POST', JSON.stringify(this.getParameters()), null);
+  }
 }
 
 RequestCard.prototype.act = function() {
@@ -80,6 +100,8 @@ RequestCard.prototype.act = function() {
       }
       window.lastResult = data;
       resolve(parsed);
+    }).catch(function(data) {
+      reject(new Error(`(HTTP: ${data.status}): ${data.responseText}`));
     });
   });
 }

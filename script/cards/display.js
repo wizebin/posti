@@ -8,7 +8,12 @@ DisplayCard = function(parent, props) {
 
 DisplayCard.prototype.act = function() {
   try {
-    this.display.value = this.subject.value ? eval(this.subject.value) : JSON.stringify(window.lastResult, null, 4);
+    var result = this.subject.value ? eval(this.subject.value) : window.lastResult;
+    if (!isString(result)) {
+      this.display.value = JSON.stringify(result, null, 4);
+    } else {
+      this.display.value = result;
+    }
     return Promise.resolve();
   } catch (err) {
     return Promise.reject(err);

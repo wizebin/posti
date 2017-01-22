@@ -10,7 +10,8 @@
   font-weight: thin;
   font-style: normal;
 }
-body{
+html, body{
+  height: 100%;
   background-color:#eee;
   font-family: "RobotoLight", "lucida grande", tahoma, verdana, arial, sans-serif;
 }
@@ -23,12 +24,37 @@ html, body, div, input, textarea {
 textarea{
   vertical-align: top;
 }
-.main {
+#main {
   width: 100%;
   height: 100%;
 }
 .timelineview {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.timelineprimary {
+  display: flex;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.timelinecanvas {
+  width: 100%;
+  height: 100%;
+}
+.abscardwrapper {
+  position: absolute;
+  left: 0px;
+  right: 0px;
+  top: 0px;
+  bottom: 0px;
+  display: flex;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.cardwrapper {
+  display: flex;
+  flex-wrap: wrap;
 }
 .maincontrols {
   padding: 10px 20px 10px 10px;
@@ -58,41 +84,23 @@ textarea{
   background-color: #aaa;
   cursor: pointer;
 }
-.cardwrapper {
-  display: flex;
-  flex-wrap: wrap;
-}
 .toggleon, .toggleoff {
   width: 20px;
   height: 20px;
   align-self: center;
-  border: 1px solid #ccc;
+  border: 1px solid #757575;
   margin-left: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #aaa;
+  color: inherit;
 }
 .toggleon:hover, .toggleoff:hover {
   background-color: #eee;
   cursor: pointer;
 }
 .toggleon {
-  color: #955;
-}
-.cardclose {
-  background-color: transparent;
-  color: #f88;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 3px;
-}
-.cardclose:hover {
-  color: #f00;
-  cursor: pointer;
+  color: inherit;
 }
 .scripttext, .displayoutput {
   width: 100%;
@@ -115,17 +123,18 @@ textarea{
   padding: 3px;
 }
 .displayoutput {
-
   flex: 1;
 }
 .cardview, .activecardview, .dropcardview, .carderror {
   display: inline-flex;
   flex-direction: column;
   min-width: 400px;
-  padding: 10px;
   margin: 15px;
   box-shadow: 0px 0px 2px #aaa;
   vertical-align: top;
+
+  border-left: 2px solid #999;
+  border-bottom: 2px solid #999;
 
   -webkit-transition: background-color 500ms linear;
   -moz-transition: background-color 500ms linear;
@@ -133,23 +142,93 @@ textarea{
   -ms-transition: background-color 500ms linear;
   transition: background-color 500ms linear;
 }
-.dropcardview {
-  border: 5px dashed #afa;
+.cardheader {
   padding: 5px;
+  display: flex;
+  background-color: #f5f5f5;
+  justify-content: space-between;
+  /*border: 1px solid #aaa;*/
+}
+.cardselect, .requestverb, .requestmime {
+  background: transparent;
+  color: inherit;
+  border: 1px solid #757575;
+}
+.cardselect:hover, .requestverb:hover, .requestmime:hover {
+  background-color: #ddd;
+  cursor: pointer;
+}
+.cardtitle {
+  padding: 0px 5px;
+  border: 1px solid #ccc;
+}
+.cardselect {
+  margin-right: 10px;
+  padding: 5px 5px 5px 5px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+.cardcontent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /*border-right: 1px solid #aaa;
+  border-bottom: 1px solid #aaa;
+  border-left: 1px solid #aaa;*/
+}
+.cardclose {
+  background-color: #fff;
+  color: #f88;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-left: 5px;
+  border-radius: 3px;
+  width: 25px;
+}
+.cardclose:hover {
+  color: #f00;
+  background-color: #eee;
+  cursor: pointer;
+}
+.cardminimize {
+  background-color: #fff;
+  color: #333;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 3px;
+  width: 25px;
+}
+.cardminimize:hover {
+  color: #000;
+  background-color: #eee;
+  cursor: pointer;
+}
+.cardconfigdiv, .carddisplaydiv {
+  display: flex;
+}
+.dropcardview {
+  /*border: 5px dashed #afa;*/
+  box-shadow: inset 0 0 10px #0f0;
   background-color: transparent;
 }
 .dropcardview *{
   visibility:hidden;
 }
 .carderror {
-  background-color: #f00;
+  background-color: #fcc;
 }
 .cardview {
   background-color: #fafafa;
 }
 .errorview {
-  background-color: #faa;
-  padding: 10px;
+  background-color: #fee;
   height: 200px;
   overflow: auto;
 }
@@ -159,22 +238,11 @@ textarea{
   bottom: 0px;
   left: 0px;
   right: 0px;
+  padding: 10px;
   overflow: auto;
 }
 .activecardview {
   background-color: #afa;
-}
-.cardheader {
-  padding: 10px;
-  display: flex;
-}
-.cardselect, .requestverb, .requestmime {
-  background: transparent;
-  border: 1px solid #ccc;
-}
-.cardselect:hover, .requestverb:hover, .requestmime:hover {
-  background-color: #ddd;
-  cursor: pointer;
 }
 .statelink {
   text-decoration: none;
@@ -184,21 +252,6 @@ textarea{
 .statelink:hover {
   color: #00a8ff;
   cursor: pointer;
-}
-.cardselect {
-  flex: 1;
-  margin-right: 10px;
-  padding: 5px 35px 5px 5px;
-  font-size: 16px;
-  height: 34px;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-}
-.cardcontent {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
 }
 .requestview {
   flex: 1;

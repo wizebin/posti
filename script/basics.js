@@ -171,7 +171,7 @@ const httpVERB = (url, verb, params, headers) => {
             reject(err.message + xhr.responseText);
           }
         } else {
-          reject(xhr.statusText);
+          reject(xhr);
         }
       }
     };
@@ -271,6 +271,20 @@ function getScrollPos() {
     return document.body.scrollTop;
   }
   return 0;
+}
+
+function getOffsetRect(elem) {
+  var box = elem.getBoundingClientRect()
+  var body = document.body
+  var docElem = document.documentElement
+  var scrollTop = window.pageYOffset || docElem.scrollTop || body.scrollTop
+  var scrollLeft = window.pageXOffset || docElem.scrollLeft || body.scrollLeft
+  var clientTop = docElem.clientTop || body.clientTop || 0
+  var clientLeft = docElem.clientLeft || body.clientLeft || 0
+  var top  = box.top +  scrollTop - clientTop
+  var left = box.left + scrollLeft - clientLeft
+
+  return { x: Math.round(left), y: Math.round(top) }
 }
 
 function getPageWidth() {
