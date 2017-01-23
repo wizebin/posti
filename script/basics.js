@@ -332,6 +332,22 @@ function getPositionInParent(elem) {
   return undefined;
 }
 
+function getPositionInAncestor(elem, ancestor) {
+  if (ancestor === elem || elem === null) {
+    return { x: 0, y: 0};
+  }
+  var pos = getPositionInParent(elem, ancestor, elem.parentElement);
+  var recursed = getPositionInAncestor(elem.parentElement, ancestor);
+  var box = elem.getBoundingClientRect();
+  return { x: pos.x + recursed.x, y: pos.y + recursed.y, w: box.right - box.left, h: box.bottom - box.top };
+}
+
+function getRelativeMousePos(elem) {
+  var mouse = getMousePos();
+  var off = getOffsetRect(elem);
+  return {x: mouse.x - off.x, y: mouse.y - off.y};
+}
+
 function getPageWidth() {
   if (self.innerHeight) {
   return self.innerWidth;

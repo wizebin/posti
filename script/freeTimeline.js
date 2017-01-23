@@ -24,6 +24,8 @@ var FreeTimeline = function(parent, props) {
   this.link = spawn('a', this.controlView, { className: 'statelink', onmouseover: function(){that.setStateLink()}, onfocus: function(){that.setStateLink()}}, 'State Link');
 
   this.addCard('CONFIG');
+
+  this.dragCounter = 0;
 }
 
 FreeTimeline.prototype.closeCard = function(card, force) {
@@ -51,14 +53,16 @@ FreeTimeline.prototype.timelineDraggedOver = function(event) {
       var wrapperOffset = getOffsetRect(this.cardView);
       var wrapperScroll = getElementScroll(this.cardView);
 
-      var offsetX = getMousePos().x - wrapperOffset.x - this.dragging.clickOff.x + wrapperScroll.x;//this.draggingMouseOffset.x - this.cardView.getBoundingClientRect().left;
-      var offsetY = getMousePos().y - wrapperOffset.y - this.dragging.clickOff.y + wrapperScroll.y;//this.draggingMouseOffset.y - this.cardView.getBoundingClientRect().top;
+      var offsetX = getMousePos().x - wrapperOffset.x + wrapperScroll.x - this.dragging.clickOff.x;//this.draggingMouseOffset.x - this.cardView.getBoundingClientRect().left;
+      var offsetY = getMousePos().y - wrapperOffset.y + wrapperScroll.y - this.dragging.clickOff.y;//this.draggingMouseOffset.y - this.cardView.getBoundingClientRect().top;
       this.dragging.view.style.position = 'absolute';
       this.dragging.view.style.top = `${offsetY}px`;
       this.dragging.view.style.left = `${offsetX}px`;
       this.dragging.view.style.margin = '0px 0px';
     }
-    this.drawLines();
+    if (this.dragCounter++ % 3 === 0) {
+      this.drawLines();
+    }
   }
 }
 FreeTimeline.prototype.droppedOnTimeline = function(event) {

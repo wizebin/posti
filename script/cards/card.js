@@ -1,11 +1,8 @@
 var Card = function(parent, props) {
   var that = me(this);
   this.props = objectAssign({ className: 'cardview', onmousedown: function(ev){
-    var targetOffset = getOffsetRect(ev.target);
-    that.clickPos = { x: targetOffset.x + ev.layerX, y: targetOffset.y + ev.layerY};
-    var viewOffset = getOffsetRect(that.view);
-    that.clickOff = { x: that.clickPos.x - viewOffset.x, y: that.clickPos.y - viewOffset.y };
-    that.startPosition = { top: that.view.style.top, left: that.view.style.left };
+    that.clickPos = getMousePos();
+    that.clickOff = getRelativeMousePos(that.view);
   }, onmouseup: function(ev){
     that.onChildChangedCreator(this)(ev);
   } }, props);
@@ -17,7 +14,7 @@ var Card = function(parent, props) {
   this.header = spawn('div', this.view, { className: 'cardheader', style: props._style, draggable: props._draggable, ondragstart: props._ondragstart, ondragend: props._ondragend, ondrop: props._ondrop }, [
     spawn('div', null, { className: 'cardconfigdiv' }, [
       this.options = spawn('select', null, { className: 'cardselect', onchange: function() {
-        that.showContent(this.value);
+        that.showContent(that.options.value);
       }}, [
         spawn('option', null, null, 'REQUEST'),
         spawn('option', null, null, 'ACT'),
@@ -31,8 +28,10 @@ var Card = function(parent, props) {
     spawn('div', null, { className: 'carddisplaydiv' }, [
       this.minimize = spawn('button', null, { className: 'cardminimize', onclick: function() {
         that.onMinimize();
+        that.onChildChangedCreator(that.minimize)();
       } }, '-'),
       this.closer = spawn('button', null, { className: 'cardclose', onclick: function() {
+        that.onChildChangedCreator(that.closer)();
         that.props.onClose && that.props.onClose(that);
       } }, 'X'),
     ]),
@@ -50,21 +49,6 @@ var Card = function(parent, props) {
     this.orderer = spawn('div', null, { className: 'cardorderer', draggable: true, ondragstart: this.props._ondragorderstart, ondragend: this.props._ondragend }),
   ]);
   window.addEventListener ("mouseup", function () {that.unlockDrag()}, false);
-
-  const kiddos = getRecursiveChildren(this);
-  const callBacks = ['onchange', 'onclick']
-  kiddos.forEach(function(kid) {
-    callBacks.forEach(function(callback){
-      if (kid.hasOwnProperty(callback)) {
-        if (kid[callback] === undefined) {
-          kid[callback] = that.onChildChangedCreator(kid);
-        } else {
-          var oldCallback = kid[callback];
-          kid[callback] = function(event){that.onChildChangedCreator(kid)(event); oldCallback(event)};
-        }
-      }
-    });
-  });
 }
 
 Card.prototype.onChildChangedCreator = function(element) {
