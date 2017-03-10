@@ -6,14 +6,22 @@ function isObject(obj) {
   return Object.prototype.toString.call(obj) === '[object Object]'
 }
 
-function isNode(o){
+function isFunc(obj) {
+  return Object.prototype.toString.call(obj) === '[object Function]'
+}
+
+function isNode(o) {
   return (typeof Node === "object" ? o instanceof Node :
     o && typeof o === "object" && typeof o.nodeType === "number" && typeof o.nodeName==="string");
 }
 
-function isElement(o){
+function isElement(o) {
   return (typeof HTMLElement === "object" ? o instanceof HTMLElement : //DOM2
     o && typeof o === "object" && o !== null && o.nodeType === 1 && typeof o.nodeName==="string");
+}
+
+function isArray(ray) {
+  return Object.prototype.toString.call(ray) === '[object Array]';
 }
 
 function getObjectKeys(obj) {
@@ -47,8 +55,15 @@ function b64DecodeUnicode(str) {
     }).join(''));
 }
 
-function spawn(element, parent, props, children) {
-  var el = document.createElement(element);
+function addButtonCallback(element, callback, keycode) {
+  element.addEventListener("keyup", function(event) {
+    if (event.keyCode === (keycode || 13)) {
+      callback&&callback(event, element);
+    }
+  });
+}
+
+function applyPropsToElement(el, props) {
   if (props!=undefined) {
     var keys = getObjectKeys(props);
     keys.forEach(function(key) {
@@ -63,36 +78,62 @@ function spawn(element, parent, props, children) {
       }
     },this);
   }
-  if (parent) {
-    if (isString(parent)) {
-      var parent = document.getElementById(parent);
-      parent && parent.appendChild(el);
-    } else if (parent.appendChild) {
-      parent.appendChild(el);
-    }
-  }
+}
+
+function applyChildrenToElement(el, children) {
   if (children) {
     if (Array.isArray(children)) {
       children.forEach(function(child) {
         var tempchild = isElement(child) ? child : child.view;
-        el.appendChild(tempchild);
+        if (tempchild) el.appendChild(tempchild);
       }, this);
     } else if (isString(children)) {
       el.value=children;
       el.innerHTML=children;
-    } else if (isObject(children)){
+    } else if (isObject(children)) {
       var keys = getObjectKeys(children);
       if (!el.kids) el.kids = {}; // named children
-      keys.forEach(function(key){
+      keys.forEach(function(key) {
         var child = isElement(children[key]) ? children[key] : children[key].view;
-        el.appendChild(child);
-        el.kids[key] = child;
+        if (child) {
+          el.appendChild(child);
+          el.kids[key] = child;
+        }
       },this);
     } else {
       el.innerHTML=JSON.stringify(children);
     }
   }
+}
+
+function spawn(element, parent, props, children) {
+  var el = null;
+  if (isString(element)) {
+    el = document.createElement(element);
+    adopt(parent, el);
+    applyChildrenToElement(el, children);
+  } else if (isFunc(element)) {
+    el = new element(parent, props);
+    if (el && el.view) {
+      applyChildrenToElement(el.view, children);
+    }
+  } else {
+    return null;
+  }
+  applyPropsToElement(el, props);
   return el;
+}
+
+function spawnFromHtml(code, parent, props, children) {
+  var tmp = spawn('div', null, {}, code);
+  if (tmp.children.length === 1) {
+    var el = tmp.children[0];
+    applyPropsToElement(el, props);
+    adopt(parent, el);
+    applyChildrenToElement(el, children);
+    return el;
+  }
+  return undefined;
 }
 
 function getChildren(element) {
@@ -109,7 +150,7 @@ function getRecursiveChildren(element, depth) {
   if (depth > 10) return [];
   var kids = getChildren(element);
   var ret = kids;
-  kids.forEach(function(child){
+  kids.forEach(function(child) {
     ret = ret.concat(getRecursiveChildren(child, depth++));
   });
   return ret;
@@ -126,10 +167,13 @@ var thatWrapper = function(instance) {
   },this);
 }
 
-var me = function(instance) {
+var me = function(instance, props) {
   if (!instance.transformedInstanceThis) {
     thatWrapper.call(instance, instance);
     instance.transformedInstanceThis=true;
+  }
+  if (props) {
+    objectAssign(instance, props);
   }
   return instance;
 }
@@ -149,8 +193,19 @@ var objectAssign = function(destination, source) {
   return destination;
 }
 
-function adopt(element, parent) {
-  parent.appendChild(element);
+function getView(element) {
+  return isElement(element) ? element : element && element.view;
+}
+
+function adopt(parent, element) {
+  if (parent) {
+    if (isString(parent)) {
+      var parent = document.getElementById(parent);
+      parent && parent.appendChild(element);
+    } else if (parent.appendChild) {
+      parent.appendChild(element);
+    }
+  }
 }
 
 function abandon(element) {
@@ -227,6 +282,14 @@ function getCookie(cname) {
     if (c.indexOf(name) == 0) return c.substring(name.length, c.length);
   }
   return null;
+}
+
+function setLocal(key, value) {
+  return localStorage.setItem(key, value);
+}
+
+function getLocal(key) {
+  return localStorage.getItem(key);
 }
 
 //http://stackoverflow.com/a/20584396
@@ -421,3 +484,90 @@ encodeURIObject = function(obj) {
   return str.join("&");
 }
 
+function formatDate(date) {
+  return  (date.getMonth()+1) +"/" + date.getDate() + "/" + date.getFullYear();
+}
+
+function formatDateWeek(date) {
+  return  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][date.getDay()] + " " + (date.getMonth()+1) +"/" + date.getDate() + "/" + date.getFullYear();
+}
+
+function formatDateTime(date) {
+  return  (date.getMonth()+1) +"/" + date.getDate() + "/" + date.getFullYear() + " " + date.getHours() + ":" + (date.getMinutes().toString().length==1?'0':'') + date.getSeconds();
+}
+
+function formatDateSane(date) {
+  if (!date) return '?/? ?:?? ??';
+  var hours;var pm;
+  if (date.getHours() < 12) {
+    pm = 'AM';
+    if (date.getHours() === 0) hours = 12;
+    else hours = date.getHours();
+  } else {
+    pm = 'PM';
+    hours = date.getHours() - 12;
+  }
+  return  (date.getMonth()+1) +"/" + date.getDate() + " " + hours + ":" + (date.getMinutes().toString().length==1?'0':'') + date.getMinutes() + ' ' + pm;
+}
+
+function getClassState(obj, keys) {
+  return (keys || []).reduce((state, key) => {
+    if (key in obj) {
+      if ('value' in obj[key]) {
+        state[key] = obj[key].value;
+      }/* else if ('innerHTML' in obj[key]) {
+        state[key] = obj[key].innerHTML;
+      } */else if ('getState' in obj[key]) {
+        state[key] = obj[key].getState();
+      }
+    }
+    return state;
+  }, {});
+}
+
+function setClassState(obj, state) {
+  return (getObjectKeys(state) || []).forEach((key) => {
+    if (obj.customStateCallback) {
+        obj.customStateCallback(obj, state, key);
+    } else if (key in obj) {
+      if ('value' in obj[key]) {
+        obj[key].value  = state[key];
+      }/* else if ('innerHTML' in obj[key]) {
+        obj[key].innerHTML  = state[key];
+      } */else if ('setState' in obj[key]) {
+        obj[key].setState(state[key]);
+      }
+    }
+    return state;
+  }, {});
+}
+
+function getAutoState(obj) {
+  var keys = getObjectKeys(obj).filter(function(key) {
+    return (isObject(obj[key]) || isElement(obj[key]));
+  });
+  return getClassState(obj, keys);
+}
+
+function setAutoState(obj, state) {
+  setClassState(obj, state);
+}
+
+function mixinAutoState(obj) {
+  obj.getState = function() {
+    return getAutoState(obj);
+  }
+  obj.setState = function(state) {
+    setAutoState(obj, state);
+  }
+}
+
+function upperFirst(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+
+function upperAllFirst(str) {
+  return str.split(' ').map(function(st) {
+    return upperFirst(st);
+  }).join(' ');
+}

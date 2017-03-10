@@ -30,6 +30,7 @@ set_error_handler("exception_error_handler");
     public $content = '';
     public $username = '';
     public $password = '';
+    public $auth = null;
 
     public $status = null;
     public $body = null;
@@ -91,6 +92,9 @@ set_error_handler("exception_error_handler");
     }
 
     public function setCredentials() {
+      if ($this->auth == "digest") {
+        curl_setopt($this->curl, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);
+      }
       if (is_string($this->username) && $this->username != '') {
         curl_setopt($this->curl, CURLOPT_USERNAME, $this->username);
       }
@@ -110,6 +114,7 @@ set_error_handler("exception_error_handler");
       $this->setPostType();
       $this->setPostFields();
       $this->setUrl();
+      $this->setCredentials();
 
       $this->body = curl_exec($this->curl);
       if (detectMimeType($this->body) === 'json') {
@@ -147,6 +152,8 @@ set_error_handler("exception_error_handler");
         $this->username = $encoded['username'];
       if (isset($encoded['password']))
         $this->password = $encoded['password'];
+      if (isset($encoded['auth']))
+        $this->auth = $encoded["auth"];
 
       return $this->http();
     }

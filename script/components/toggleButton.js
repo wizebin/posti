@@ -1,7 +1,7 @@
 var ToggleButton = function(parent, props) {
-  var that = me(this);
+  var that = me(this, props);
   this.props = props || {};
-  this.view = spawn('div', parent, { className: 'toggleView', onclick: that.onClick });
+  this.view = spawn('div', parent, { className: 'toggleView', onclick: that.onClick, style: this.style });
   this.value = this.props.toggled || true;
   this.showToggledState();
 }

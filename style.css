@@ -316,6 +316,9 @@ textarea{
 .requesttitle {
 
 }
+.headerpassbody {
+  margin-top: 10px;
+}
 .configview {
   margin-top: 10px;
   flex: 1;
