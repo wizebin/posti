@@ -243,7 +243,7 @@ const httpVERB = (url, verb, params, headers) => {
       xhr.onreadystatechange = () => {
         if (xhr.readyState === 4) {
           const status = xhr.status;
-          if (status === 200) {
+          if (status >= 200 && status <= 300) {
             try {
               resolve(xhr.responseText);
             } catch (err) {
