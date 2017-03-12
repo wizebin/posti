@@ -33,7 +33,8 @@ function getObjectKeys(obj) {
 }
 
 function getEvaluatedString(str) {
-  var escaped = `\`${str.replace('`','\\`')}\``;
+  var exp = new RegExp('`', 'g');
+  var escaped = `\`${str.replace(exp,'\\`')}\``;
   var ret = eval(escaped);
   return ret;
 }
@@ -570,4 +571,27 @@ function upperAllFirst(str) {
   return str.split(' ').map(function(st) {
     return upperFirst(st);
   }).join(' ');
+}
+
+function replacex(source, find, replace, flags, originalSource, level) {
+  if (flags === undefined) flags = 'ig';
+  if (level === undefined) level = 0;
+  if (source === originalSource) return source;
+  if (originalSource === undefined) originalSource = source;
+
+  if (isString(source)) {
+    var exp = new RegExp(find, flags);
+    return source.replace(exp, replace);
+  } else if (isArray(source)) {
+    return source.map(function(cur){return replacex(cur, find, replace, flags, originalSource, level+1)});
+  } else if (isObject(source)) {
+    var keys = getObjectKeys(source);
+    return keys.reduce(function(results, cur){
+      results[cur]=replacex(source[cur], find, replace, flags, originalSource, level+1); // leaving the keys alone
+      // results[replacex(cur, find, replace, flags, originalSource, level+1)]=replacex(source[cur], find, replace, flags, originalSource, level+1);
+      return results;
+    }, {});
+  } else {
+    return source;
+  }
 }

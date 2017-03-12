@@ -21,6 +21,10 @@ var FreeTimeline = function(parent, props) {
     that.act();
   } }, 'Perform');
 
+  this.rearrangeButton = spawn('button', this.controlRow, { className: 'controlbutton', onclick: function() {
+    that.rearrange();
+  } }, 'Rearrange Cards');
+
   this.link = spawn('a', this.controlView, { className: 'statelink', onmouseover: function(){that.setStateLink()}, onfocus: function(){that.setStateLink()}}, 'State Link');
 
   this.addCard('CONFIG');
@@ -154,6 +158,36 @@ FreeTimeline.prototype.addCard = function(initialCard) {
   return nextCard;
 }
 
+FreeTimeline.prototype.rearrange = function() {
+  var curx = 0;
+  var prevOff = { x: 0, y: 10, w: 0, h: 0 };
+  var timelineOff = getOffsetRect(this.view);
+
+  var cardWidth = (timelineOff.w / 3) - 10;
+  var cardHeight = (timelineOff.h / 5) - 10;
+
+  var lowest = 0;
+
+  this.cards.forEach(function(card) {
+    var nextTop = prevOff.y ;
+    var nextLeft = prevOff.x + prevOff.w + 10;
+
+    if (prevOff.x + prevOff.w + cardWidth + 10 > timelineOff.w) {
+      nextTop = lowest + 10;
+      nextLeft = 10;
+    }
+
+    card.view.style.top = `${nextTop}px`;
+    card.view.style.left = `${nextLeft}px`;
+
+    prevOff = getPositionInParent(card.view);
+    if (lowest < prevOff.y + prevOff.h) {
+      lowest = prevOff.y + prevOff.h;
+    }
+  });
+  this.drawLines();
+}
+
 FreeTimeline.prototype.clear = function() {
   for(var a = this.cards.length-1; a >= 0; a--) {
     this.closeCard(this.cards[a], true);
@@ -229,8 +263,14 @@ FreeTimeline.prototype.drawLines = function() {
 
   lines.forEach(function(line, ord) {
     context.beginPath();
-    context.strokeStyle = line.enabled ? '#333' : '#caa';
-    context.lineWidth = ord+1;
+
+    var grad= context.createLinearGradient(line.start.x, line.start.y, line.end.x, line.end.y);
+    grad.addColorStop(0, "#fafafa");
+    grad.addColorStop(1, line.enabled ? '#333' : '#caa');
+
+    context.strokeStyle = grad;
+
+    context.lineWidth = 3; // ord+1;
     context.moveTo(line.start.x, line.start.y);
     context.lineTo(line.end.x, line.end.y);
     context.stroke();

@@ -20,6 +20,8 @@ var Card = function(parent, props) {
         spawn('option', null, null, 'ACT'),
         spawn('option', null, null, 'CONFIG'),
         spawn('option', null, null, 'DISPLAY'),
+        spawn('option', null, null, 'REGEX'),
+        spawn('option', null, null, 'SET'),
       ]),
       this.title = spawn('input', null, { className: 'cardtitle', placeholder: 'title', onmousedown: function(){that.lockDrag()}, onmouseup: function(){that.unlockDrag()} }, that.props.title),
       this.toggle = new ToggleButton(null, { toggled: true, onClass: 'toggleon', offClass: 'toggleoff', onclick: that.onChildChangedCreator(that.toggle) }),
@@ -94,6 +96,8 @@ var headerColors = {
   REQUEST: '#97ff96',
   ACT: '#383838',
   DISPLAY: '#bad5ff',
+  REGEX: '#eee',
+  SET: '#ffeeaa'
 };
 
 Card.prototype.showContent = function(contentType) {
@@ -115,12 +119,12 @@ Card.prototype.showContent = function(contentType) {
     this.innerView = new ScriptCard(this.content, props);
   } else if (contentType === 'DISPLAY') {
     this.innerView = new DisplayCard(this.content, props);
-  } else if (contentType === 'IF') {
-
+  } else if (contentType === 'SET') {
+    this.innerView = new SetCard(this.content, props);
   } else if (contentType === 'TEMPLATE') {
 
   } else if (contentType === 'REGEX') {
-
+    this.innerView = new RegexCard(this.content, props);
   }
 
   this.header.style.backgroundColor = headerColors[contentType] || '#eee';
@@ -160,13 +164,15 @@ Card.prototype.act = function() {
 }
 
 Card.prototype.saveState = function() {
-  return {contentType: this.contentType, content: this.innerView && this.innerView.saveState(), enabled: this.toggle.getValue()};
+  return {contentType: this.contentType, content: this.innerView && this.innerView.saveState(), enabled: this.toggle.getValue(), title: this.title.value, top: this.view.style.top, left: this.view.style.left};
 }
 
 Card.prototype.loadState = function(state) {
   this.options.value=state.contentType;
   this.showContent(state.contentType);
   this.toggle.setToggleState(state.enabled);
-
+  this.title.value=state.title || '';
   this.innerView && this.innerView.loadState(state.content);
+  this.view.style.top=state.top;
+  this.view.style.left=state.left;
 }
