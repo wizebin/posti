@@ -335,6 +335,7 @@ FreeTimeline.prototype.loadState = function(stateString) {
     JSON.parse(stateString).forEach(function(cardstate){
       var buf = this.addCard();
       buf.loadState(cardstate);
+      this.drawLines();
     }, this);
   } catch (err) {
     err.desc = 'timeline state load json error';
