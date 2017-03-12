@@ -1,8 +1,8 @@
 var Card = function(parent, props) {
-  var that = me(this);
+  var that = me(this, props);
   this.props = objectAssign({ className: 'cardview', onmousedown: function(ev){
-    that.clickPos = getMousePos();
-    that.clickOff = getRelativeMousePos(that.view);
+    that.setClickOffset();
+    that.notifyMouseDown && that.notifyMouseDown(that);
   }, onmouseup: function(ev){
     that.onChildChangedCreator(this)(ev);
   } }, props);
@@ -51,6 +51,11 @@ var Card = function(parent, props) {
     this.orderer = spawn('div', null, { className: 'cardorderer', draggable: true, ondragstart: this.props._ondragorderstart, ondragend: this.props._ondragend }),
   ]);
   window.addEventListener ("mouseup", function () {that.unlockDrag()}, false);
+}
+
+Card.prototype.setClickOffset = function() {
+  this.clickPos = getMousePos();
+  this.clickOff = getRelativeMousePos(this.view);
 }
 
 Card.prototype.onChildChangedCreator = function(element) {

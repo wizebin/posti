@@ -135,7 +135,7 @@ textarea{
 .displayoutput {
   flex: 1;
 }
-.cardview, .activecardview, .dropcardview, .carderror {
+.cardview, .activecardview, .dropcardview, .carderror, .selectedcardview {
   display: inline-flex;
   flex-direction: column;
   min-width: 400px;
@@ -276,6 +276,9 @@ textarea{
 }
 .activecardview {
   background-color: #afa;
+}
+.selectedcardview {
+  background-color: #efa;
 }
 .statelink {
   text-decoration: none;

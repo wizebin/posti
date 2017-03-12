@@ -372,18 +372,23 @@ function getElementScroll(elem) {
   return { x: elem.pageXOffset || elem.scrollLeft, y: elem.pageYOffset || elem.scrollTop };
 }
 
-function getOffsetRect(elem) {
-  var box = elem.getBoundingClientRect()
-  var body = document.body
-  var docElem = document.documentElement
-  var scrollTop = window.pageYOffset || docElem.scrollTop || body.scrollTop
-  var scrollLeft = window.pageXOffset || docElem.scrollLeft || body.scrollLeft
-  var clientTop = docElem.clientTop || body.clientTop || 0
-  var clientLeft = docElem.clientLeft || body.clientLeft || 0
-  var top  = box.top +  scrollTop - clientTop
-  var left = box.left + scrollLeft - clientLeft
+function getElementSize(elem) {
+  var box = elem.getBoundingClientRect();
+  return { w: box.right - box.left, h: box.bottom - box.top };
+}
 
-  return { x: Math.round(left), y: Math.round(top), w: box.right - box.left, h: box.bottom - box.top }
+function getOffsetRect(elem) {
+  var box = elem.getBoundingClientRect();
+  var body = document.body;
+  var docElem = document.documentElement;
+  var scrollTop = window.pageYOffset || docElem.scrollTop || body.scrollTop;
+  var scrollLeft = window.pageXOffset || docElem.scrollLeft || body.scrollLeft;
+  var clientTop = docElem.clientTop || body.clientTop || 0;
+  var clientLeft = docElem.clientLeft || body.clientLeft || 0;
+  var top  = box.top +  scrollTop - clientTop;
+  var left = box.left + scrollLeft - clientLeft;
+
+  return { x: Math.round(left), y: Math.round(top), w: box.right - box.left, h: box.bottom - box.top };
 }
 
 function getPositionInParent(elem) {

@@ -1,6 +1,6 @@
 var FreeTimeline = function(parent, props) {
   var that = me(this);
-  this.view = spawn('div', parent, { className: 'timelineview' });
+  this.view = spawn('div', parent, { className: 'timelineview', onselectstart: function() { return false; } });
 
   this.cards = [];
 
@@ -10,8 +10,8 @@ var FreeTimeline = function(parent, props) {
   this.controlRow = spawn('div', this.controlView, { className: 'buttoncontrols' });
 
   this.primary = spawn('div', this.view, { className: 'timelineprimary' });
-  this.cardView = spawn('div', this.primary, { className: 'abscardwrapper', ondrop: function(ev) { that.droppedOnTimeline(ev) }, ondragover: function(ev) { that.timelineDraggedOver(ev) }, onscroll: that.drawLines });
-  this.canvas = spawn('canvas', this.cardView, { className: 'timelinecanvas' });
+  this.cardView = spawn('div', this.primary, { className: 'abscardwrapper', onselectstart: function() { return false; }, ondrop: function(ev) { that.droppedOnTimeline(ev) }, ondragover: function(ev) { that.timelineDraggedOver(ev) }, onscroll: that.drawLines, onmousemove: that.onMoveMouse });
+  this.canvas = spawn('canvas', this.cardView, { className: 'timelinecanvas', onselectstart: function() { return false; }, onmousedown: function() { that.startSelection(); } });
 
   this.addButton = spawn('button', this.controlRow, { className: 'controlbutton', onclick: function() {
     that.addCard();
@@ -30,6 +30,114 @@ var FreeTimeline = function(parent, props) {
   this.addCard('CONFIG');
 
   this.dragCounter = 0;
+
+  this.selectedCards = [];
+
+  this.selectionStart = null;
+
+  this.selectionBox = spawn('div', this.cardView, { style: { display: 'none', backgroundColor: '#f00', opacity: '.4', position: 'absolute', zIndex: 100 }, onselectstart: function() { return false; } });
+
+  window.addEventListener ("mouseup", function () { that.finishSelection(); }, false);
+}
+
+function collide(boxa, boxb) {
+  return !(
+    boxa.x > boxb.x + boxb.w ||
+    boxb.x > boxa.x + boxa.w ||
+    boxa.y > boxb.y + boxb.h ||
+    boxb.y > boxa.y + boxa.h
+  );
+}
+
+function getBoxFromPoints(pointa, pointb) {
+  var ret = { x: 0, y: 0, w: 0, h: 0 };
+
+  if (pointa.x < pointb.x) {
+    ret.x = pointa.x;
+    ret.w = pointb.x - pointa.x;
+  } else {
+    ret.x = pointb.x;
+    ret.w = pointa.x - pointb.x;
+  }
+
+  if (pointa.y < pointb.y) {
+    ret.y = pointa.y;
+    ret.h = pointb.y - pointa.y;
+  } else {
+    ret.y = pointb.y;
+    ret.h = pointa.y - pointb.y;
+  }
+
+  return ret;
+}
+
+FreeTimeline.prototype.onMoveMouse = function() {
+  if (this.selectionStart !== null) {
+    var curSelection = getRelativeMousePos(this.cardView);
+    var scrolls = getElementScroll(this.cardView);
+    curSelection.x += scrolls.x;
+    curSelection.y += scrolls.y;
+
+    console.log('boxy', curSelection);
+
+    var box = getBoxFromPoints(this.selectionStart, curSelection);
+
+    this.selectionBox.style.left = `${box.x}px`;
+    this.selectionBox.style.top = `${box.y}px`;
+    this.selectionBox.style.width = `${box.w}px`;
+    this.selectionBox.style.height = `${box.h}px`;
+    this.selectionBox.style.display = 'block';
+
+  }
+}
+
+FreeTimeline.prototype.startSelection = function() {
+  this.selectionStart = getRelativeMousePos(this.cardView);
+  var scrolls = getElementScroll(this.cardView);
+  this.selectionStart.x += scrolls.x;
+  this.selectionStart.y += scrolls.y;
+  console.log('rel', this.selectionStart);
+}
+
+FreeTimeline.prototype.finishSelection = function() {
+  if (this.selectionStart !== null) {
+    var curSelection = getRelativeMousePos(this.cardView);
+    var scrolls = getElementScroll(this.cardView);
+    curSelection.x += scrolls.x;
+    curSelection.y += scrolls.y;
+
+    var box = getBoxFromPoints(this.selectionStart, curSelection);
+
+    this.selectedCards = this.getCardsInBox(box);
+    this.displaySelectedCards();
+
+    console.log('finsel');
+    this.selectionStart = null;
+    this.selectionBox.style.left = '0px';
+    this.selectionBox.style.top = '0px';
+    this.selectionBox.style.width = '0px';
+    this.selectionBox.style.height = '0px';
+    this.selectionBox.style.display = 'none';
+  }
+}
+
+FreeTimeline.prototype.displaySelectedCards = function() {
+  this.cards.forEach(function(card){
+    card.view.className = 'cardview';
+  });
+
+  this.selectedCards.forEach(function(card){
+    card.view.className = 'selectedcardview';
+  });
+}
+
+FreeTimeline.prototype.getCardsInBox = function(box) {
+  return this.cards.reduce(function(result, card) {
+    if (collide(box, getPositionInParent(card.view))) {
+      result.push(card);
+    }
+    return result;
+  }, []);
 }
 
 FreeTimeline.prototype.closeCard = function(card, force) {
@@ -53,7 +161,19 @@ FreeTimeline.prototype.closeCard = function(card, force) {
 FreeTimeline.prototype.timelineDraggedOver = function(event) {
   if (!this.ordering) {
     event.preventDefault();
-    if (this.dragging && this.dragging.constructor.name === 'Card'){
+    if (this.selectedCards.length > 0) {
+      var wrapperOffset = getOffsetRect(this.cardView);
+      var wrapperScroll = getElementScroll(this.cardView);
+
+      this.selectedCards.forEach(function(card) {
+        var offsetX = getMousePos().x - wrapperOffset.x + wrapperScroll.x - card.clickOff.x;//cardMouseOffset.x - this.cardView.getBoundingClientRect().left;
+        var offsetY = getMousePos().y - wrapperOffset.y + wrapperScroll.y - card.clickOff.y;//cardMouseOffset.y - this.cardView.getBoundingClientRect().top;
+        card.view.style.position = 'absolute';
+        card.view.style.top = `${offsetY}px`;
+        card.view.style.left = `${offsetX}px`;
+        card.view.style.margin = '0px 0px';
+      });
+    } else if (this.dragging && this.dragging.constructor.name === 'Card'){
       var wrapperOffset = getOffsetRect(this.cardView);
       var wrapperScroll = getElementScroll(this.cardView);
 
@@ -87,17 +207,16 @@ FreeTimeline.prototype.orderStartingDrag = function(card, event) {
 
 FreeTimeline.prototype.cardDraggedOver = function(card, event) {
   if (this.ordering) {
+
     this.cards.forEach(function(icard){
-      icard.view.className = (icard === card && icard != this.dragging) ? 'dropcardview' : 'cardview';
+      icard.view.className = (icard === card && icard != this.dragging) ? 'dropcardview' : ((this.selectedCards.indexOf(icard) !== -1) ? 'selectedcardview' : 'cardview');
     }, this);
   }
 }
 
 FreeTimeline.prototype.droppedOnCard = function(card, event) {
   if (this.dragging && this.dragging != card) {
-    if (!this.ordering) {
-
-    } else {
+    if (this.ordering) {
       event.stopPropagation();
       var cardPosition = this.cards.indexOf(this.dragging);
       var dropPosition = this.cards.indexOf(card);
@@ -118,9 +237,11 @@ FreeTimeline.prototype.droppedOnCard = function(card, event) {
 }
 
 FreeTimeline.prototype.cardStoppedDrag = function(card, event) {
+  this.selectedCards = [];
   this.cards.forEach(function(card){
     card.view.className = 'cardview';
   });
+
   var that = this;
   this.ordering = false;
   this.dragging = null;
@@ -131,6 +252,18 @@ FreeTimeline.prototype.cardAction = function(card, action) {
   this.drawLines();
 }
 
+FreeTimeline.prototype.closeSelectedCards = function(card, force) {
+  var that = this;
+  if (this.selectedCards.length > 0) {
+    this.selectedCards.forEach(function(card){
+      that.closeCard(card, force);
+    });
+    this.selectedCards = [];
+  } else {
+    that.closeCard(card, force);
+  }
+}
+
 FreeTimeline.prototype.addCard = function(initialCard) {
   var that = this;
   var off = getOffsetRect(this.cardView);
@@ -138,7 +271,7 @@ FreeTimeline.prototype.addCard = function(initialCard) {
   var nextTop = prevOff.y + prevOff.h + 10;
   var nextLeft = prevOff.x;
 
-  var nextCard = new Card(this.cardView, { id: `CARD_${this.cardCounter++}`, onClose: that.closeCard, onAction: that.cardAction, initialCard, _draggable: true,
+  var nextCard = new Card(this.cardView, { id: `CARD_${this.cardCounter++}`, onClose: that.closeSelectedCards, onAction: that.cardAction, initialCard, _draggable: true,
   _ondragstart: function(ev) {
     that.cardStartingDrag(nextCard, ev);
   }, _ondragorderstart: function(ev) {
@@ -150,7 +283,8 @@ FreeTimeline.prototype.addCard = function(initialCard) {
     that.cardDraggedOver(nextCard, ev);
   }, _ondragend: function(ev) {
     that.cardStoppedDrag(nextCard, ev);
-  }, _style: { cursor: 'move' },
+  }, notifyMouseDown: this.onMousedownNotification,
+  _style: { cursor: 'move' },
   style: { position: 'absolute', top: `${nextTop}px`, left: `${nextLeft}px` } } );
   this.cards.push(nextCard);
   this.setOrdinality();
@@ -169,10 +303,11 @@ FreeTimeline.prototype.rearrange = function() {
   var lowest = 0;
 
   this.cards.forEach(function(card) {
+    var curSize = getElementSize(card.view)
     var nextTop = prevOff.y ;
     var nextLeft = prevOff.x + prevOff.w + 10;
 
-    if (prevOff.x + prevOff.w + cardWidth + 10 > timelineOff.w) {
+    if (prevOff.x + prevOff.w + curSize.w + 10 > timelineOff.w) {
       nextTop = lowest + 10;
       nextLeft = 10;
     }
@@ -275,6 +410,24 @@ FreeTimeline.prototype.drawLines = function() {
     context.lineTo(line.end.x, line.end.y);
     context.stroke();
   });
+}
+
+// This function tells the other selected cards to store the current offset from the mouse so all of them can move at once
+FreeTimeline.prototype.onMousedownNotification = function(snitchCard, controlPressed, shiftPressed) {
+  var that = this;
+  if (this.selectedCards.length > 0) {
+    var containsCard = false;
+    this.selectedCards.forEach(function(card){
+      card.setClickOffset();
+      if (card === snitchCard) containsCard = true;
+    });
+    if (!containsCard) {
+      this.selectedCards = [];
+      this.cards.forEach(function(card){
+        card.view.className = 'cardview';
+      });
+    }
+  }
 }
 
 FreeTimeline.prototype.act = function() {
