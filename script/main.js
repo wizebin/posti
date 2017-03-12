@@ -28,7 +28,7 @@ var timelineWrapper = spawn('div', document.getElementById('main'), { style: { d
 var leftbar = spawn('div', timelineWrapper, { style: { flex: '0 0 200px', backgroundColor: '#e6e6e6', overflowY: 'auto' } });
 var timeline = new FreeTimeline(timelineWrapper);
 
-var nameWrapper = spawn('div', leftbar, { style: { display: 'flex', paddingTop: '10px' } }, [
+var nameWrapper = spawn('div', leftbar, { style: { display: 'flex', padding: '10px 0px', borderBottom: '1px solid #ccc' } }, [
   nameField = spawn('input', null, { style: { marginLeft: '10px', padding: '5px', width: '100%' }, placeholder: 'Current Name' }),
   saveCurrent = spawn('button', null, { className: 'controlbutton', onclick: function() {
     if (nameField.value !== '') {

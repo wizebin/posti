@@ -1,6 +1,6 @@
 var FreeTimeline = function(parent, props) {
   var that = me(this);
-  this.view = spawn('div', parent, { className: 'timelineview', onselectstart: function() { return false; } });
+  this.view = spawn('div', parent, { className: 'timelineview' });
 
   this.cards = [];
 
@@ -10,7 +10,7 @@ var FreeTimeline = function(parent, props) {
   this.controlRow = spawn('div', this.controlView, { className: 'buttoncontrols' });
 
   this.primary = spawn('div', this.view, { className: 'timelineprimary' });
-  this.cardView = spawn('div', this.primary, { className: 'abscardwrapper', onselectstart: function() { return false; }, ondrop: function(ev) { that.droppedOnTimeline(ev) }, ondragover: function(ev) { that.timelineDraggedOver(ev) }, onscroll: that.drawLines, onmousemove: that.onMoveMouse });
+  this.cardView = spawn('div', this.primary, { className: 'abscardwrapper', ondrop: function(ev) { that.droppedOnTimeline(ev) }, ondragover: function(ev) { that.timelineDraggedOver(ev) }, onscroll: that.drawLines, onmousemove: that.onMoveMouse });
   this.canvas = spawn('canvas', this.cardView, { className: 'timelinecanvas', onselectstart: function() { return false; }, onmousedown: function() { that.startSelection(); } });
 
   this.addButton = spawn('button', this.controlRow, { className: 'controlbutton', onclick: function() {
@@ -266,8 +266,7 @@ FreeTimeline.prototype.closeSelectedCards = function(card, force) {
 
 FreeTimeline.prototype.addCard = function(initialCard) {
   var that = this;
-  var off = getOffsetRect(this.cardView);
-  var prevOff = this.cards.length > 0 ? getPositionInParent(this.cards[this.cards.length-1].view) : { x: off.x, y: off.y, w: 0, h: 0};
+  var prevOff = this.cards.length > 0 ? getPositionInParent(this.cards[this.cards.length-1].view) : { x: 10, y: 0, w: 0, h: 0};
   var nextTop = prevOff.y + prevOff.h + 10;
   var nextLeft = prevOff.x;
 
