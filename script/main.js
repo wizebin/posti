@@ -46,6 +46,18 @@ var localList = spawn('ul', leftbar, { style: { listStyle: 'none', padding: '0px
 
 function loadLocalList() {
   var rawList = localStorage.getItem('saved');
+  if (rawList == undefined) {
+    defaultList = {
+      "Get Local Saved": {
+          "config": "[{\"contentType\":\"DISPLAY\",\"content\":{\"subject\":\"localStorage.getItem('saved')\"},\"enabled\":true,\"title\":\"\",\"top\":\"10px\",\"left\":\"10px\"}]"
+      },
+      "Set Local Saved": {
+          "config": "[{\"contentType\":\"SET\",\"content\":{\"subject\":\"\",\"object\":\"\",\"eval\":false},\"enabled\":true,\"title\":\"New State\",\"top\":\"10px\",\"left\":\"10px\"},{\"contentType\":\"DISPLAY\",\"content\":{\"subject\":\"localStorage.getItem('saved')\"},\"enabled\":true,\"title\":\"Previous State\",\"top\":\"10px\",\"left\":\"576px\"},{\"contentType\":\"ACT\",\"content\":{\"script\":\"localStorage.setItem('saved', lastResult);\\nreloadSavedList();\"},\"enabled\":true,\"title\":\"\",\"top\":\"227px\",\"left\":\"575px\"}]"
+      }
+    };
+    rawList = JSON.stringify(defaultList);
+    localStorage.setItem('saved', rawList);
+  }
   try{
     var list = JSON.parse(rawList);
     removeAllChildren(localList);
@@ -69,7 +81,11 @@ function loadLocalList() {
   } catch (err) {
 
   }
+}
 
+
+function reloadSavedList() {
+  loadLocalList();
 }
 
 loadLocalList();
