@@ -81,6 +81,8 @@ FreeTimeline.prototype.onMoveMouse = function() {
     console.log('boxy', curSelection);
 
     var box = getBoxFromPoints(this.selectionStart, curSelection);
+    this.selectedCards = this.getCardsInBox(box);
+    this.displaySelectedCards();
 
     this.selectionBox.style.left = `${box.x}px`;
     this.selectionBox.style.top = `${box.y}px`;

@@ -56,6 +56,10 @@ function getObjectAsHeaderArray(obj) {
   },[]);
 }
 
+RequestCard.prototype.onMouseUp = function() {
+  this.bodyCard.onMouseUp();
+}
+
 RequestCard.prototype.onToggleSecure = function() {
 
 }
@@ -215,7 +219,7 @@ RequestCard.prototype.setBodyType = function(type) {
       this.lastData = null;
     }
   } else if (type === 'Raw') {
-    this.bodyCard = new ScriptCard(this.body, { lockDrag: this.props.lockDrag, unlockDrag: this.props.unlockDrag });
+    this.bodyCard = new ScriptCard(this.body, { editorMode: "ace/mode/text", lockDrag: this.props.lockDrag, unlockDrag: this.props.unlockDrag });
     if (this.lastData) {
       var parsed = this.lastData.reduce(function(culm, row){
         culm[row.key] = row.value;
@@ -225,7 +229,7 @@ RequestCard.prototype.setBodyType = function(type) {
       this.lastData = null;
     }
   } else {
-    this.bodyCard = new ScriptCard(this.body, { lockDrag: this.props.lockDrag, unlockDrag: this.props.unlockDrag });
+    this.bodyCard = new ScriptCard(this.body, { editorMode: "ace/mode/json", lockDrag: this.props.lockDrag, unlockDrag: this.props.unlockDrag });
     if (this.lastData) {
       var parsed = this.lastData.reduce(function(culm, row){
         culm[row.key] = row.value;

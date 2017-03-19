@@ -4,7 +4,7 @@ var Card = function(parent, props) {
     that.setClickOffset();
     that.notifyMouseDown && that.notifyMouseDown(that);
   }, onmouseup: function(ev){
-    that.onChildChangedCreator(this)(ev);
+    that.notifyAllMouseup(ev);
   } }, props);
   if (this.props._draggable) {
     this.canDrag = true;
@@ -51,6 +51,11 @@ var Card = function(parent, props) {
     this.orderer = spawn('div', null, { className: 'cardorderer', draggable: true, ondragstart: this.props._ondragorderstart, ondragend: this.props._ondragend }),
   ]);
   window.addEventListener ("mouseup", function () {that.unlockDrag()}, false);
+}
+
+Card.prototype.notifyAllMouseup = function(ev) {
+  this.onChildChangedCreator(this)(ev);
+  this.innerView && this.innerView.onMouseUp && this.innerView.onMouseUp();
 }
 
 Card.prototype.setClickOffset = function() {

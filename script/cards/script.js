@@ -1,8 +1,29 @@
 ScriptCard = function(parent, props) {
-  var that = me(this);
+  var that = me(this, props);
   this.props = props || {};
-  this.view = spawn('div', parent, { className: 'scriptview', style: { backgroundColor: '#eee', color: '#fff' } });
-  this.text = spawn('textarea', this.view, { className: 'scripttext', onmousedown: function(){that.props.lockDrag&&that.props.lockDrag()}, onmouseup: function(){that.props.unlockDrag&&that.props.unlockDrag()} });
+
+  this.editor = ace.edit();
+  this.editor.setTheme("ace/theme/monokai");
+  this.editor.getSession().setMode(this.editorMode || "ace/mode/javascript");
+  this.editor.getSession().setTabSize(2);
+  this.editor.getSession().setUseWrapMode(true);
+  this.editor.getSession().setUseWrapMode(true);
+  this.editor.container.style.height= '100%';
+  this.editor.container.style.width= '100%';
+  this.editor.container.style.minHeight= '100px';
+
+  this.view = spawn('div', parent, { className: 'scriptview', style: { backgroundColor: '#eee', color: '#fff' } }, [
+    this.editor.container,
+  ]);
+
+  this.editor.resize();
+}
+
+ScriptCard.prototype.onMouseUp = function() {
+  if (!this.previousSize || this.previousSize != getElementSize(this.view)) {
+    this.editor.resize();
+    this.previousSize = getElementSize(this.view);
+  }
 }
 
 ScriptCard.prototype.act = function() {
@@ -16,13 +37,17 @@ ScriptCard.prototype.act = function() {
 }
 
 ScriptCard.prototype.getValue = function() {
-  return this.text.value;
+  return this.editor.getValue();
+}
+
+ScriptCard.prototype.setValue = function(val) {
+  this.editor.setValue(val);
 }
 
 ScriptCard.prototype.saveState = function() {
-  return {script: this.text.value};
+  return {script: this.getValue()};
 }
 
 ScriptCard.prototype.loadState = function(state) {
-  this.text.value = (state && state.script) || '';
+  this.setValue((state && state.script) || '');
 }
