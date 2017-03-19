@@ -3,7 +3,7 @@ ScriptCard = function(parent, props) {
   this.props = props || {};
 
   this.editor = ace.edit();
-  this.editor.setTheme("ace/theme/monokai");
+  this.editor.setTheme("ace/theme/chrome");
   this.editor.getSession().setMode(this.editorMode || "ace/mode/javascript");
   this.editor.getSession().setTabSize(2);
   this.editor.getSession().setUseWrapMode(true);
@@ -42,6 +42,7 @@ ScriptCard.prototype.getValue = function() {
 
 ScriptCard.prototype.setValue = function(val) {
   this.editor.setValue(val);
+  this.editor.clearSelection();
 }
 
 ScriptCard.prototype.saveState = function() {

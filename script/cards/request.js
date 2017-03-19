@@ -57,7 +57,7 @@ function getObjectAsHeaderArray(obj) {
 }
 
 RequestCard.prototype.onMouseUp = function() {
-  this.bodyCard.onMouseUp();
+  this.bodyCard.onMouseUp && this.bodyCard.onMouseUp();
 }
 
 RequestCard.prototype.onToggleSecure = function() {
