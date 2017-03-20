@@ -2,7 +2,7 @@ var Card = function(parent, props) {
   var that = me(this, props);
   this.props = objectAssign({ className: 'cardview', onmousedown: function(ev){
     that.setClickOffset();
-    that.notifyMouseDown && that.notifyMouseDown(that);
+    that.notifyMouseDown && that.notifyMouseDown(that, ev.ctrlKey);
   }, onmouseup: function(ev){
     that.notifyAllMouseup(ev);
   } }, props);
