@@ -284,7 +284,10 @@ FreeTimeline.prototype.addCard = function(initialCard) {
     that.cardDraggedOver(nextCard, ev);
   }, _ondragend: function(ev) {
     that.cardStoppedDrag(nextCard, ev);
-  }, notifyMouseDown: this.onMousedownNotification,
+  }, notifyMouseDown: function(card, controlPressed) {
+    controlPressed && that.addSelectedCard(card);
+    that.onMousedownNotification(card);
+  },
   _style: { cursor: 'move' },
   style: { position: 'absolute', top: `${nextTop}px`, left: `${nextLeft}px` } } );
   this.cards.push(nextCard);
@@ -412,6 +415,18 @@ FreeTimeline.prototype.drawLines = function() {
     context.lineTo(line.end.x, line.end.y);
     context.stroke();
   });
+}
+
+FreeTimeline.prototype.addSelectedCard = function(selectedCard) {
+  var index = this.selectedCards.indexOf(selectedCard);
+
+  if (index !== -1) {
+    this.selectedCards.splice(index, 1);
+    selectedCard.view.className = 'cardview';
+  } else {
+    this.selectedCards.push(selectedCard);
+    selectedCard.view.className = 'selectedcardview';
+  }
 }
 
 // This function tells the other selected cards to store the current offset from the mouse so all of them can move at once
