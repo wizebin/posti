@@ -2,9 +2,10 @@ var Card = function(parent, props) {
   var that = me(this, props);
   this.props = objectAssign({ className: 'cardview', onmousedown: function(ev){
     that.setClickOffset();
-    that.notifyMouseDown && that.notifyMouseDown(that, ev.ctrlKey);
+    that.notifyMouseDown && that.notifyMouseDown(that, ev.ctrlKey || ev.metaKey);
   }, onmouseup: function(ev){
     that.notifyAllMouseup(ev);
+    that.notifyMouseUp && that.notifyMouseUp(that, ev.ctrlKey || ev.metaKey);
   } }, props);
   if (this.props._draggable) {
     this.canDrag = true;
