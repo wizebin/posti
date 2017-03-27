@@ -178,6 +178,10 @@ Card.prototype.saveState = function() {
   return {contentType: this.contentType, content: this.innerView && this.innerView.saveState(), enabled: this.toggle.getValue(), title: this.title.value, top: this.view.style.top, left: this.view.style.left};
 }
 
+Card.prototype.getName = function() {
+  return this.title.value;
+}
+
 Card.prototype.loadState = function(state) {
   this.options.value=state.contentType;
   this.showContent(state.contentType);
