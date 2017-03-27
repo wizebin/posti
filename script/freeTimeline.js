@@ -281,7 +281,7 @@ FreeTimeline.prototype.addCard = function(initialCard) {
     that.onMousedownNotification(card, controlPressed);
   }, notifyMouseUp: function(card, controlPressed) {
     controlPressed && that.addSelectedCard(card);
-  },
+  }, timeline: this,
   _style: { cursor: 'move' },
   style: { position: 'absolute', top: `${nextTop}px`, left: `${nextLeft}px` } } );
   this.cards.push(nextCard);
@@ -351,12 +351,39 @@ FreeTimeline.prototype.saveState = function() {
   }));
 }
 
+FreeTimeline.prototype.findCardNamed = function(name) {
+  for(var a = 0; a < this.cards.length; a++) {
+    if (this.cards[a].getName() === name) return this.cards[a];
+  }
+  return undefined;
+}
+
+FreeTimeline.prototype.executeCardNamed = function(name) {
+  var card = this.findCardNamed(name);
+  if (card === undefined) return undefined;
+
+  return card.act();
+}
+
 FreeTimeline.prototype.flow = function(promiseList, step) {
   if (step >= promiseList.length) return undefined;
   var that = this;
   promiseList[step]().then(function(data){
+    if (isObject(data)) {
+      if(data.nextstep !== undefined) {
+        if (isString(data.nextstep)) {
+          //find card with title
+        } else if (isNumber(data.nextstep)) {
+          return that.flow(promiseList, data.nextstep);
+        } else if (isFunc(data.nextstep)) {
+          return that.flow()
+        } else if (data.nextstep === false) {
+          return undefined;
+        }
+      }
+    }
     var nextStep = step+1;
-    that.flow(promiseList, nextStep);
+    return that.flow(promiseList, nextStep);
   }).catch(function(data){
     console.log('chain stopped at', step, data);
   });

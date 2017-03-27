@@ -2,6 +2,10 @@ function isString(str) {
   return typeof str === 'string' || str instanceof String;
 }
 
+function isNumber(num) {
+  return typeof num === 'number' || num instanceof Number;
+}
+
 function isObject(obj) {
   return Object.prototype.toString.call(obj) === '[object Object]'
 }
